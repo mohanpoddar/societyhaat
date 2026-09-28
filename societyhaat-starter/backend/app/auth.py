@@ -139,6 +139,30 @@ async def bulk_approve():
     save_json(PENDING_FILE, [])
     return {"message": f"Approved all {count} pending users", "approved_count": count}
 
+@router.post("/login")
+async def login(payload: dict):
+    phone = payload.get("phone","").strip()
+    society_id = payload.get("society_id","").strip().lower()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone required")
+    users = load_json(USERS_FILE)
+    # Find user by phone, optionally filtered by society
+    found = None
+    for u in users:
+        if u.get("phone") == phone:
+            if not society_id or u.get("society_id","sev2").lower() == society_id:
+                found = u
+                break
+    if not found:
+        # Check pending
+        pending = load_json(PENDING_FILE)
+        for p in pending:
+            if p.get("phone") == phone:
+                if not society_id or p.get("society_id","sev2").lower() == society_id:
+                    return {"status":"pending","message":f"Registration for {p.get('flat')} is pending admin approval","user":p}
+        raise HTTPException(status_code=404, detail="Phone not registered. Please register your flat first.")
+    return {"status":"approved","message":"Login successful","user":found}
+
 @router.get("/stats")
 async def stats():
     users = load_json(USERS_FILE)

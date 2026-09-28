@@ -3,133 +3,628 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Society Haat</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16a34a">
+<title>Society Haat - Haat + Seva</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
-body{max-width:440px;margin:0 auto;background:white;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;min-height:100vh;padding-bottom:70px}
-.header{padding:16px 16px 10px;position:sticky;top:0;background:white;z-index:10;border-bottom:1px solid #f1f5f9}
-.soc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px}
-.soc-card{border-radius:14px;padding:12px;cursor:pointer;border:1px solid #e2e8f0;transition:transform .12s}
-.soc-card:active{transform:scale(0.98)}
+body{max-width:440px;margin:0 auto;background:#f8fafc;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;min-height:100vh;padding-bottom:80px}
+.header{padding:14px 16px;background:white;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:20}
+.soc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}
+.soc-card{border-radius:12px;padding:10px;cursor:pointer;border:1px solid #e2e8f0;transition:all .15s}
+.soc-card.active{outline:2px solid #16a34a;outline-offset:1px}
 .soc-card.sev2{background:#16a34a;color:white;border-color:#16a34a}
 .soc-card.apcpth{background:white}
 .soc-card.alp{grid-column:1 / span 2;display:flex;justify-content:space-between;align-items:center;background:#fefce8;border-color:#fde68a}
-.badge-top{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
-.badge{font-size:8px;font-weight:800;padding:3px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px}
-.badge-white{background:white;color:#16a34a;border:1px solid #bbf7d0}
-.badge-blue{background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd}
+.badge{font-size:8px;font-weight:800;padding:3px 7px;border-radius:20px;text-transform:uppercase}
+.badge-white{background:white;color:#16a34a}
+.badge-blue{background:#e0f2fe;color:#0369a1}
 .badge-yellow{background:#fef08a;color:#854d0e}
-.soc-card h3{font-size:12px;line-height:1.25;font-weight:700}
-.soc-card p{font-size:9px;margin-top:4px;opacity:.9;line-height:1.3}
-.sev2 p{color:#dcfce7}
-.apcpth p{color:#64748b}
-.alp p{color:#a16207}
-.tabs{display:flex;gap:8px;padding:8px 12px;background:#f8fafc;margin:4px 12px;border-radius:12px;border:1px solid #f1f5f9}
-.tab{flex:1;padding:8px;border-radius:8px;text-align:center;font-size:11px;font-weight:700;color:#64748b}
-.tab.active{background:white;box-shadow:0 1px 3px rgba(0,0,0,.08);color:#111;border:1px solid #e2e8f0}
-.feed{padding:12px}
-.feed-card{background:#fefce8;border:1px solid #fde68a;border-radius:14px;padding:12px}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;background:white;border-top:1px solid #e2e8f0;display:flex;justify-content:space-around;padding:6px 0 8px;z-index:20}
-.nav-item{font-size:9px;text-align:center;color:#94a3b8;min-width:40px}
+.soc-card h3{font-size:11px;line-height:1.2;margin-top:5px}
+.soc-card p{font-size:8px;margin-top:3px;opacity:.8}
+.tabs{display:flex;gap:6px;padding:8px 10px;background:#f1f5f9;margin:8px 10px;border-radius:12px}
+.tab{flex:1;padding:9px;border-radius:8px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;color:#64748b;transition:all .15s}
+.tab.active{background:white;color:#111;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e2e8f0}
+.feed{padding:10px}
+.feed-card{background:white;border:1px solid #e2e8f0;border-radius:14px;padding:12px;margin-bottom:10px;position:relative}
+.feed-card.haat{border-left:3px solid #16a34a}
+.feed-card.seva{border-left:3px solid #f59e0b}
+.feed-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.tag{font-size:8px;padding:3px 7px;border-radius:20px;font-weight:700}
+.tag-isolated{background:#dcfce7;color:#166534}
+.tag-haat{background:#16a34a;color:white}
+.tag-seva{background:#fef3c7;color:#92400e}
+.price{font-weight:800;font-size:13px;color:#111}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;background:white;border-top:1px solid #e2e8f0;display:flex;justify-content:space-around;padding:6px 0 10px;z-index:30}
+.nav-item{font-size:9px;text-align:center;color:#94a3b8;min-width:44px;cursor:pointer}
 .nav-item.active{color:#16a34a}
-.fab{width:44px;height:44px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:22px;font-weight:800;margin-top:-18px;box-shadow:0 4px 12px rgba(22,163,74,.4)}
+.nav-item b{display:block;font-size:16px}
+.fab{width:48px;height:48px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:24px;font-weight:800;margin-top:-20px;box-shadow:0 6px 16px rgba(22,163,74,.4);cursor:pointer}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:none;align-items:end;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{width:100%;max-width:440px;background:white;border-radius:20px 20px 0 0;padding:16px;max-height:90vh;overflow:auto;animation:slideUp .25s}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:14px;margin-bottom:10px}
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.opt{border:1px solid #e2e8f0;border-radius:12px;padding:12px;text-align:center;cursor:pointer}
+.opt.active{border-color:#16a34a;background:#f0fdf4}
+.opt b{display:block;font-size:12px;margin-top:4px}
+label{font-size:11px;font-weight:700;display:block;margin-top:10px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:10px;margin-top:4px;font-size:12px}
+textarea{resize:vertical;min-height:60px}
+.btn{width:100%;padding:11px;border:none;border-radius:10px;margin-top:10px;font-weight:700;cursor:pointer;font-size:12px}
+.btn-green{background:#16a34a;color:white}
+.btn-gray{background:#f1f5f9;color:#334155}
+.empty{text-align:center;padding:30px 10px;color:#94a3b8;font-size:11px}
+.empty b{font-size:30px;display:block;margin-bottom:8px}
 </style>
 </head>
 <body>
 <div class="header">
-<h2 style="font-size:18px">Society Haat</h2>
-<p style="font-size:10px;color:#64748b;margin-top:2px">Haat + Seva • 1-2km Greater Noida West • Backend: <span id="status">checking...</span></p>
+<div style="display:flex;justify-content:space-between;align-items:center">
+<h2 style="font-size:16px">Society Haat</h2>
+<div style="display:flex;gap:6px;align-items:center">
+<span style="font-size:9px;background:#dcfce7;color:#166534;padding:3px 7px;border-radius:20px" id="status">checking...</span>
+<span id="userChip" style="display:none;font-size:9px;background:#16a34a;color:white;padding:4px 8px;border-radius:20px;font-weight:700"></span>
+</div>
+</div>
+<p style="font-size:9px;color:#64748b;margin-top:2px">Haat + Seva • <span id="selectedLabel">SEV2 only</span> • 1-2km Greater Noida West • <span id="loggedUserLabel" style="color:#16a34a;font-weight:700">Not logged in</span></p>
+</div>
+
+<!-- LOGIN GATE - Required to get self user -->
+<div class="modal-bg show" id="loginGate" style="z-index:60;background:rgba(248,250,252,0.98);align-items:center">
+<div class="modal" style="border-radius:16px;max-width:380px;margin:16px;animation:none">
+<div style="text-align:center;padding:10px 0">
+<div style="font-size:40px">🏠</div>
+<h3 style="font-size:16px;margin-top:8px">Login to Society Haat</h3>
+<p style="font-size:10px;color:#64748b;margin-top:4px">Login required to get self user info for Haat & Seva posts<br>Your flat + name auto-filled from verified registration</p>
+</div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-top:12px">
+<label>Registered Phone Number</label>
+<input id="gatePhone" placeholder="10 digit phone e.g. 9560779666" type="tel" maxlength="10" inputmode="numeric" style="background:white">
+<div style="display:flex;gap:6px;margin-top:8px">
+<select id="gateSociety" style="flex:1"><option value="sev2">SEV2</option><option value="apcpth">APCPTH</option><option value="alp">ALP</option></select>
+<button onclick="doLogin()" id="loginBtn" class="btn-green" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;color:white;cursor:pointer">Login / Verify</button>
+</div>
+<p style="font-size:8px;color:#94a3b8;margin-top:6px">We check backend /api/auth/login → users.json (approved) + pending.json</p>
+<div id="loginMsg" style="margin-top:8px"></div>
+</div>
+<div style="text-align:center;margin-top:12px">
+<p style="font-size:10px;color:#64748b">Not registered yet?</p>
+<button onclick="goToRegisterFromLogin()" style="margin-top:6px;padding:8px 16px;background:white;border:1px solid #16a34a;color:#16a34a;border-radius:8px;font-weight:700;font-size:11px;cursor:pointer">Register Flat →</button>
+</div>
+<p style="font-size:8px;color:#94a3b8;text-align:center;margin-top:12px">🔒 Login required: Your posts will show as verified resident ✓ B16-001</p>
+</div>
 </div>
 
 <div class="soc-grid">
-<div class="soc-card sev2" onclick="openSociety('sev2')">
-<div class="badge-top"><span class="badge badge-white">SEV2</span><span class="badge" style="background:rgba(255,255,255,.25);color:white" id="sev2-count">verified</span></div>
-<h3>Supertech Eco Village 2 (SEV2)</h3>
-<p>Supertech Eco Village 2</p>
+<div class="soc-card sev2 active" id="card-sev2" onclick="selectSociety('sev2')">
+<div style="display:flex;gap:5px"><span class="badge badge-white">SEV2</span><span class="badge" style="background:rgba(255,255,255,.25);color:white" id="sev2-count">-</span></div>
+<h3>Supertech Eco Village 2</h3><p>A1-A10 • B1-B20 • C1-C15 • D1-D10</p>
 </div>
-
-<div class="soc-card apcpth" onclick="openSociety('apcpth')">
-<div class="badge-top"><span class="badge badge-blue">APCPTH</span><span class="badge" style="background:#f1f5f9;color:#334155" id="apcpth-count">89 listings</span></div>
-<h3>Amrapali Centurion Park Terrace Homes (APCPTH)</h3>
-<p>Amrapali Centurion Park Terrace Homes</p>
+<div class="soc-card apcpth" id="card-apcpth" onclick="selectSociety('apcpth')">
+<div style="display:flex;gap:5px"><span class="badge badge-blue">APCPTH</span><span class="badge" style="background:#f1f5f9;color:#333" id="apcpth-count">-</span></div>
+<h3>Centurion Park Terrace</h3><p>A1-A6 • B1-B6 • T1-T8</p>
 </div>
-
-<div class="soc-card alp" onclick="openSociety('alp')">
-<div>
-<div class="badge-top"><span class="badge badge-yellow">ALP</span><span class="badge" style="background:white;color:#854d0e" id="alp-count">Leisure Park</span></div>
-<h3>Amrapali Leisure Park (ALP)</h3>
-<p>Amrapali Leisure Park • A1-A4, B1-B5</p>
-</div>
-<div style="font-size:18px">→</div>
+<div class="soc-card alp" id="card-alp" onclick="selectSociety('alp')">
+<div><div style="display:flex;gap:5px"><span class="badge badge-yellow">ALP</span><span class="badge" style="background:white" id="alp-count">Leisure</span></div><h3>Leisure Park (ALP)</h3><p>A1-A4 • B1-B5 • L1-L2</p></div><div>→</div>
 </div>
 </div>
 
 <div class="tabs">
-<div class="tab active">📦 Haat - Bazaar</div>
-<div class="tab">🤝 Seva - Help & Pool</div>
+<div class="tab active" id="tab-haat" onclick="switchTab('haat')">🛒 Haat - Bazaar <span id="haatBadge" style="background:#16a34a;color:white;padding:2px 6px;border-radius:10px;font-size:8px;margin-left:4px">0</span></div>
+<div class="tab" id="tab-seva" onclick="switchTab('seva')">🤝 Seva - Help & Pool <span id="sevaBadge" style="background:#f59e0b;color:white;padding:2px 6px;border-radius:10px;font-size:8px;margin-left:4px">0</span></div>
 </div>
 
-<div class="feed">
-<div class="feed-card">
-<div style="display:flex;justify-content:space-between"><span style="font-size:9px;background:#dcfce7;color:#166534;padding:4px 8px;border-radius:20px;font-weight:700">🏠 Isolated: <span id="feedSoc">SEV2 only</span></span><span style="font-size:9px;background:#111;color:white;padding:4px 8px;border-radius:20px">3 photos</span></div>
-<div style="text-align:center;padding:8px 0"><div style="font-size:36px">🎂</div><h4 style="font-size:13px;margin-top:6px">Homemade Chocolate Cake - 3 photos</h4><p style="font-size:9px;color:#94a3b8;margin-top:4px">cake1.webp • cake2.webp • cake3.webp<br>Swipe: 3 photos - WebP 800x800</p></div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed #fde68a"><div><span style="font-size:9px;background:#fef08a;padding:3px 6px;border-radius:6px;font-weight:700">Home Food</span><h4 style="font-size:13px;margin-top:4px">Homemade Chocolate Cake - 3 photos</h4><div style="display:flex;gap:6px;align-items:center;margin-top:6px"><span style="width:20px;height:20px;background:#e2e8f0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px">S</span><div><p style="font-size:11px;font-weight:600">Sunita Aunty</p><p style="font-size:9px;color:#16a34a">✓ SEV2 Tower 4 - 1202</p></div></div></div><b style="font-size:14px">Rs 450</b></div>
+<div class="feed" id="haatFeed">
+<div class="empty"><b>🛒</b>No Haat posts yet in <span class="socName">SEV2</span><br>Tap + to post first item</div>
 </div>
+
+<div class="feed" id="sevaFeed" style="display:none">
+<div class="empty"><b>🤝</b>No Seva requests in <span class="socName">SEV2</span><br>Need help? Car pool? Post here</div>
 </div>
 
 <div class="bottom-nav">
-<div class="nav-item active"><b>⌂</b>Home</div>
-<div class="nav-item" onclick="openSociety('sev2')"><b>🛒</b>Haat</div>
-<div class="nav-item" onclick="goToRegistration()"><b>➕</b>Register</div>
-<div class="fab" onclick="goToRegistration()">+</div>
-<div class="nav-item"><b>🤝</b>Seva</div>
-<div class="nav-item" onclick="location.href='societyhaat-admin.html'"><b>👤</b>Profile</div>
+<div class="nav-item active" onclick="switchTab('haat')"><b>⌂</b>Home</div>
+<div class="nav-item" onclick="switchTab('haat')"><b>🛒</b>Haat</div>
+<div class="fab" onclick="openPostModal()">+</div>
+<div class="nav-item" onclick="switchTab('seva')"><b>🤝</b>Seva</div>
+<div class="nav-item" onclick="handleProfileClick()"><b>👤</b><span id="profileLabel">Profile</span></div>
+</div>
+
+<!-- Post Modal -->
+<div class="modal-bg" id="postModal" onclick="if(event.target==this)closePostModal()">
+<div class="modal">
+<h3 id="modalTitle">Create Post — <span id="modalSoc">SEV2</span></h3>
+<p style="font-size:9px;color:#64748b">Isolated: Only <span id="modalSoc2">SEV2</span> residents will see this</p>
+
+<div class="opt-grid">
+<div class="opt active" id="opt-haat" onclick="selectPostType('haat')"><div style="font-size:20px">🛒</div><b>Haat - Bazaar</b><div style="font-size:8px;color:#64748b;margin-top:2px">Sell, Food, Service</div></div>
+<div class="opt" id="opt-seva" onclick="selectPostType('seva')"><div style="font-size:20px">🤝</div><b>Seva - Help & Pool</b><div style="font-size:8px;color:#64748b;margin-top:2px">Help, Car Pool, Lost</div></div>
+</div>
+
+<div id="haatForm">
+<label>Category</label>
+<select id="haatCategory"><option>Home Food</option><option>Electronics</option><option>Kids & Toys</option><option>Clothes</option><option>Home Service</option><option>Others</option></select>
+<label>Title (e.g. Homemade Chocolate Cake - 3 photos)</label><input id="haatTitle" placeholder="What are you selling?">
+<label>Description</label><textarea id="haatDesc" placeholder="Fresh, homemade, delivery in 1hr..."></textarea>
+<label>Price (Rs)</label><input id="haatPrice" placeholder="450" type="number">
+</div>
+
+<div id="sevaForm" style="display:none">
+<label>Seva Type</label>
+<select id="sevaType" onchange="onSevaTypeChange()">
+<option>Help Needed</option>
+<option>Car Pool</option>
+<option>Share Auto</option>
+<option>Lost & Found</option>
+</select>
+
+<!-- Car Pool BlaBla style - source destination separate -->
+<div id="carPoolFields" style="display:none;background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:10px;margin-top:10px">
+<p style="font-size:10px;font-weight:700;margin-bottom:6px">🚗 Car Pool / Share Auto — Like BlaBla, Ola</p>
+<div style="display:flex;gap:6px;align-items:center">
+<div style="flex:1">
+<label style="margin-top:0">From (Source)</label>
+<select id="sevaFrom" style="background:white">
+<option>SEV2 Main Gate</option><option>SEV2 B16 Gate</option><option>APCPTH Gate</option><option>ALP Gate</option><option>Pari Chowk</option><option>Alpha 1 Metro</option><option>Delta 1</option><option>Knowledge Park</option><option>Sector 52 Metro</option><option>Botanical Garden</option><option>Custom</option>
+</select>
+<input id="sevaFromCustom" placeholder="Custom source" style="display:none;margin-top:4px">
+</div>
+<div style="padding-top:18px">→</div>
+<div style="flex:1">
+<label style="margin-top:0">To (Destination)</label>
+<select id="sevaTo" style="background:white">
+<option>Pari Chowk</option><option>Alpha 1 Metro</option><option>Sector 52 Metro</option><option>Botanical Garden Metro</option><option>Knowledge Park</option><option>SEV2 Main Gate</option><option>APCPTH Gate</option><option>ALP Gate</option><option>Delhi</option><option>Noida</option><option>Custom</option>
+</select>
+<input id="sevaToCustom" placeholder="Custom destination" style="display:none;margin-top:4px">
+</div>
+</div>
+<div style="display:flex;gap:6px;margin-top:8px">
+<div style="flex:1"><label>Date</label><input id="sevaDate" type="date" style="background:white"></div>
+<div style="flex:1"><label>Time</label><input id="sevaTime" type="time" style="background:white"></div>
+</div>
+<div style="display:flex;gap:6px;margin-top:8px">
+<div style="flex:1"><label>Seats Available</label><select id="sevaSeats"><option>1 seat</option><option>2 seats</option><option>3 seats</option><option>4 seats</option><option>Car full</option></select></div>
+<div style="flex:1"><label>Price / Contribution (Rs)</label><input id="sevaPrice" type="number" placeholder="Free / 50 / 100"></div>
+</div>
+</div>
+
+<label>Title</label><input id="sevaTitle" placeholder="Need plumber urgently / Car pool to Metro - 9am">
+<label>Description</label><textarea id="sevaDesc" placeholder="Details, contact preference, any notes..."></textarea>
+</div>
+
+<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;margin-top:12px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<label style="margin-top:0">Your Info — Auto from registration ✅</label>
+<span id="userVerifiedBadge" style="font-size:8px;padding:2px 6px;border-radius:10px;background:#dcfce7;color:#166534">Not verified</span>
+</div>
+<div id="userInfoAuto" style="margin-top:6px">
+<div style="display:flex;gap:6px;margin-top:4px">
+<input id="userName" placeholder="Name" style="flex:1;background:#f8fafc" readonly>
+<input id="userFlat" placeholder="Flat e.g. B16-001" style="flex:1;background:#f8fafc" readonly>
+</div>
+<input id="userPhone" placeholder="Phone for WhatsApp contact" style="margin-top:6px;background:#f8fafc" readonly maxlength="10">
+<p style="font-size:8px;color:#16a34a;margin-top:4px">✓ Auto-filled from verified registration • Phone hidden, only WhatsApp button shown</p>
+<button type="button" onclick="editUserInfo()" style="font-size:9px;color:#64748b;background:none;border:1px dashed #cbd5e1;padding:4px 8px;border-radius:8px;margin-top:6px">✎ Edit if wrong</button>
+</div>
+<div id="userInfoLogin" style="display:none;margin-top:6px">
+<p style="font-size:9px;color:#92400e;margin-bottom:6px">Enter registered phone to fetch your verified info:</p>
+<div style="display:flex;gap:6px">
+<input id="loginPhone" placeholder="Registered phone e.g. 9560xxxxxx" maxlength="10" style="flex:1">
+<button onclick="loginAndFill()" style="padding:8px 12px;background:#16a34a;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700">Verify</button>
+</div>
+<p style="font-size:8px;color:#94a3b8;margin-top:4px">We will fetch Name + Flat from backend /api/auth/login</p>
+</div>
+</div>
+
+<button class="btn btn-green" onclick="submitPost()">Post to <span id="submitSoc">SEV2</span> <span id="submitType">Haat</span></button>
+<button class="btn btn-gray" onclick="closePostModal()">Cancel</button>
+</div>
 </div>
 
 <script>
-const apiBase='http://localhost:8000';
-async function check(){try{const r=await fetch(apiBase+'/api/societies');document.getElementById('status').textContent=r.ok?'connected ✅':'offline'}catch(e){document.getElementById('status').textContent='offline'}}
-check();
+const apiBase = (() => {
+  const h = window.location.hostname;
+  if(h === '192.168.10.50' || h === 'localhost' || h === '127.0.0.1') return `http://${h}:8000`;
+  if(window.location.port === '8000') return window.location.origin;
+  return 'http://192.168.10.50:8000';
+})();
+
 let selectedSociety = localStorage.getItem('society') || 'sev2';
+let currentTab = localStorage.getItem('tab') || 'haat';
+let postType = 'haat';
 
-function openSociety(soc){
- selectedSociety = soc;
- localStorage.setItem('society',soc);
- // Highlight cards
- document.querySelectorAll('.soc-card').forEach(c=>c.style.outline='');
- const target = document.querySelector('.soc-card.'+soc);
- if(target) target.style.outline='2px solid #16a34a';
- document.getElementById('feedSoc').textContent=soc.toUpperCase()+' only';
- // Filter logic for feed (demo: just update label, real would filter listings)
- console.log('Selected society:',soc,' - filtering Haat feed');
-}
+// Init
+async function check(){try{const r=await fetch(apiBase+'/api/health');document.getElementById('status').textContent=r.ok?'connected ✅':'offline'}catch(e){document.getElementById('status').textContent='offline (local only)'}}
+check();
 
-function goToRegistration(){
- // Only FAB / Register button should go to registration
- const soc = selectedSociety || localStorage.getItem('society') || 'sev2';
- window.location.href='societyhaat-tower-flat.html?society='+soc;
-}
-
-function selectInitialSociety(){
- const soc = new URLSearchParams(window.location.search).get('society') || localStorage.getItem('society') || 'sev2';
- if(['sev2','apcpth','alp'].includes(soc)){
+function selectSociety(soc){
   selectedSociety = soc;
-  document.getElementById('feedSoc').textContent=soc.toUpperCase()+' only';
-  const target = document.querySelector('.soc-card.'+soc);
-  if(target) target.style.outline='2px solid #16a34a';
- }
+  localStorage.setItem('society',soc);
+  document.querySelectorAll('.soc-card').forEach(c=>c.classList.remove('active'));
+  document.getElementById('card-'+soc).classList.add('active');
+  document.getElementById('selectedLabel').textContent=soc.toUpperCase()+' only';
+  document.getElementById('modalSoc').textContent=soc.toUpperCase();
+  document.getElementById('modalSoc2').textContent=soc.toUpperCase();
+  document.getElementById('submitSoc').textContent=soc.toUpperCase();
+  document.querySelectorAll('.socName').forEach(e=>e.textContent=soc.toUpperCase());
+  loadFeeds();
 }
-async function loadStats(){
- try{
-  const [pRes,uRes]=await Promise.all([fetch(apiBase+'/api/auth/pending'),fetch(apiBase+'/api/auth/users')]);
-  const p=(await pRes.json()).pending||[]; const u=(await uRes.json()).users||[];
-  const c={sev2:0,apcpth:0,alp:0}; [...p,...u].forEach(x=>{const s=(x.society_id||'sev2').toLowerCase(); if(c[s]!==undefined) c[s]++;});
-  document.getElementById('sev2-count').textContent=c.sev2+' • verified';
-  document.getElementById('apcpth-count').textContent=c.apcpth||89+' listings';
-  document.getElementById('alp-count').textContent=c.alp?c.alp+' users':'Leisure Park';
- }catch(e){}
+
+function switchTab(tab){
+  currentTab = tab;
+  localStorage.setItem('tab',tab);
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('haatFeed').style.display = tab==='haat' ? 'block' : 'none';
+  document.getElementById('sevaFeed').style.display = tab==='seva' ? 'block' : 'none';
+  document.querySelectorAll('.nav-item').forEach((n,i)=>{n.classList.remove('active'); if((tab==='haat' && i<=1) || (tab==='seva' && i===2)) n.classList.add('active')});
+  loadFeeds();
 }
-loadStats(); selectInitialSociety();
+
+function openPostModal(){
+  // Try auto-fill from verifiedUser or pendingUser
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || 'null');
+  const pending = JSON.parse(localStorage.getItem('pendingUser') || 'null');
+  const user = verified || pending;
+  if(user){
+    document.getElementById('userName').value = user.name || '';
+    document.getElementById('userFlat').value = user.flat || '';
+    document.getElementById('userPhone').value = user.phone || '';
+    document.getElementById('userVerifiedBadge').textContent = (user.status==='pending' ? '⏳ Pending approval' : '✓ Verified • '+ (user.society_id||selectedSociety).toUpperCase()+' '+user.flat);
+    document.getElementById('userVerifiedBadge').style.background = user.status==='pending' ? '#fef3c7' : '#dcfce7';
+    document.getElementById('userInfoAuto').style.display = 'block';
+    document.getElementById('userInfoLogin').style.display = 'none';
+    // Make readonly
+    document.getElementById('userName').readOnly = true;
+    document.getElementById('userFlat').readOnly = true;
+    document.getElementById('userPhone').readOnly = true;
+  } else {
+    // No info, show login prompt
+    document.getElementById('userInfoAuto').style.display = 'none';
+    document.getElementById('userInfoLogin').style.display = 'block';
+    document.getElementById('userVerifiedBadge').textContent = 'Not verified — login needed';
+    document.getElementById('userVerifiedBadge').style.background = '#fee2e2';
+  }
+  document.getElementById('postModal').classList.add('show');
+}
+
+async function loginAndFill(){
+  const phone = document.getElementById('loginPhone').value.trim();
+  if(phone.length < 10){alert('Enter valid 10 digit phone'); return;}
+  try{
+    const res = await fetch(apiBase+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone, society_id: selectedSociety})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || 'Not found');
+    const u = data.user;
+    // Save to localStorage for future auto-fill
+    localStorage.setItem('verifiedUser', JSON.stringify({...u, status: data.status}));
+    document.getElementById('userName').value = u.name || '';
+    document.getElementById('userFlat').value = u.flat || '';
+    document.getElementById('userPhone').value = u.phone || '';
+    document.getElementById('userVerifiedBadge').textContent = (data.status==='pending' ? '⏳ Pending — '+u.flat : '✓ Verified — '+u.society_id.toUpperCase()+' '+u.flat);
+    document.getElementById('userInfoAuto').style.display = 'block';
+    document.getElementById('userInfoLogin').style.display = 'none';
+    document.getElementById('userName').readOnly = true;
+    document.getElementById('userFlat').readOnly = true;
+    document.getElementById('userPhone').readOnly = true;
+    alert('✅ '+data.message+' — '+u.name+' '+u.flat);
+  }catch(e){
+    alert('❌ '+e.message+' — Please register first via Profile → Register');
+  }
+}
+
+function editUserInfo(){
+  document.getElementById('userName').readOnly = false;
+  document.getElementById('userFlat').readOnly = false;
+  document.getElementById('userPhone').readOnly = false;
+  document.getElementById('userName').style.background = 'white';
+  document.getElementById('userFlat').style.background = 'white';
+  document.getElementById('userPhone').style.background = 'white';
+  document.getElementById('userName').focus();
+}
+function closePostModal(){document.getElementById('postModal').classList.remove('show')}
+
+function selectPostType(type){
+  postType = type;
+  document.getElementById('opt-haat').classList.toggle('active', type==='haat');
+  document.getElementById('opt-seva').classList.toggle('active', type==='seva');
+  document.getElementById('haatForm').style.display = type==='haat' ? 'block' : 'none';
+  document.getElementById('sevaForm').style.display = type==='seva' ? 'block' : 'none';
+  document.getElementById('submitType').textContent = type==='haat' ? 'Haat' : 'Seva';
+}
+
+function onSevaTypeChange(){
+  const t = document.getElementById('sevaType').value;
+  const showCar = (t==='Car Pool' || t==='Share Auto');
+  document.getElementById('carPoolFields').style.display = showCar ? 'block' : 'none';
+  // Auto set today's date for car pool
+  if(showCar && !document.getElementById('sevaDate').value){
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('sevaDate').value = today;
+  }
+}
+// Custom source/destination toggles
+document.addEventListener('change', (e)=>{
+  if(e.target.id==='sevaFrom'){
+    document.getElementById('sevaFromCustom').style.display = e.target.value==='Custom' ? 'block' : 'none';
+  }
+  if(e.target.id==='sevaTo'){
+    document.getElementById('sevaToCustom').style.display = e.target.value==='Custom' ? 'block' : 'none';
+  }
+});
+
+function goRegister(){
+  window.location.href='societyhaat-tower-flat.html?society='+selectedSociety;
+}
+function goToRegisterFromLogin(){ // duplicate guard
+  const soc = document.getElementById('gateSociety')?.value || selectedSociety;
+  window.location.href='societyhaat-tower-flat.html?society='+soc;
+}
+
+async function loadFeeds(){
+  loadHaat();
+  loadSeva();
+  loadCounts();
+}
+
+async function loadCounts(){
+  try{
+    const [h,s] = await Promise.all([
+      fetch(apiBase+'/api/haat/list?society_id='+selectedSociety).then(r=>r.json()).catch(()=>({count:0})),
+      fetch(apiBase+'/api/seva/list?society_id='+selectedSociety).then(r=>r.json()).catch(()=>({count:0}))
+    ]);
+    document.getElementById('haatBadge').textContent = h.count || 0;
+    document.getElementById('sevaBadge').textContent = s.count || 0;
+    document.getElementById('sev2-count').textContent = selectedSociety==='sev2' ? (h.count+s.count)+' posts' : '';
+  }catch(e){}
+}
+
+async function loadHaat(){
+  const feed = document.getElementById('haatFeed');
+  try{
+    const res = await fetch(apiBase+'/api/haat/list?society_id='+selectedSociety);
+    const data = await res.json();
+    const posts = data.posts || [];
+    if(!posts.length){
+      feed.innerHTML = `<div class="empty"><b>🛒</b>No Haat posts yet in ${selectedSociety.toUpperCase()}<br>Tap + to post first item</div>`;
+      return;
+    }
+    feed.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="tag tag-isolated">🏠 Isolated: ${selectedSociety.toUpperCase()} only</span><span class="tag" style="background:#f1f5f9">${posts.length} posts</span></div>` + posts.map(p => `
+      <div class="feed-card haat">
+        <div class="feed-top"><span class="tag tag-haat">${p.category || 'Home Food'}</span><span style="font-size:8px;color:#94a3b8">${new Date(p.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>
+        <h4 style="font-size:12px">${p.title}</h4>
+        <p style="font-size:10px;color:#64748b;margin-top:4px;white-space:pre-wrap">${p.description}</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
+          <div><div style="display:flex;gap:5px;align-items:center"><span style="width:18px;height:18px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px">${(p.name||'S')[0]}</span><div><p style="font-size:10px;font-weight:600">${p.name || 'Resident'}</p><p style="font-size:8px;color:#16a34a">✓ ${p.flat || selectedSociety.toUpperCase()} • ${p.society_id.toUpperCase()}</p></div></div></div>
+          <div style="text-align:right"><div class="price">Rs ${p.price || '—'}</div><a href="https://wa.me/91${p.phone}?text=Hi, interested in ${encodeURIComponent(p.title)} from Society Haat" target="_blank" style="font-size:9px;background:#25D366;color:white;padding:4px 8px;border-radius:20px;text-decoration:none;display:inline-block;margin-top:4px">WhatsApp</a></div>
+        </div>
+      </div>`).join('');
+  }catch(e){
+    // offline fallback from localStorage
+    const local = JSON.parse(localStorage.getItem('haat_'+selectedSociety) || '[]');
+    if(local.length){
+      feed.innerHTML = local.map(p=>`<div class="feed-card haat"><h4 style="font-size:12px">${p.title}</h4><p style="font-size:10px">${p.description}</p><div class="price">Rs ${p.price}</div></div>`).join('');
+    } else {
+      feed.innerHTML = `<div class="empty"><b>🛒</b>Backend offline, local only<br>No posts in ${selectedSociety.toUpperCase()} yet</div>`;
+    }
+  }
+}
+
+async function loadSeva(){
+  const feed = document.getElementById('sevaFeed');
+  try{
+    const res = await fetch(apiBase+'/api/seva/list?society_id='+selectedSociety);
+    const data = await res.json();
+    const posts = data.posts || [];
+    if(!posts.length){
+      feed.innerHTML = `<div class="empty"><b>🤝</b>No Seva requests in ${selectedSociety.toUpperCase()}<br>Need help? Car pool? Post here</div>`;
+      return;
+    }
+    feed.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="tag tag-isolated">🏠 Isolated: ${selectedSociety.toUpperCase()} only</span><span class="tag" style="background:#fef3c7">${posts.length} seva</span></div>` + posts.map(p => {
+      const isCarPool = (p.type==='Car Pool' || p.type==='Share Auto');
+      return `
+      <div class="feed-card seva">
+        <div class="feed-top"><span class="tag tag-seva">${p.type || 'Help'}</span><span style="font-size:8px;color:#94a3b8">${p.date || ''} ${p.time || ''}</span></div>
+        ${isCarPool ? `
+          <div style="display:flex;align-items:center;gap:6px;margin:6px 0;background:#fefce8;padding:8px;border-radius:10px">
+            <div style="flex:1;text-align:center"><b style="font-size:11px">${p.from_source || p.from_to?.split('→')[0] || 'From'}</b><p style="font-size:8px;color:#64748b">Source</p></div>
+            <div style="font-size:14px">→</div>
+            <div style="flex:1;text-align:center"><b style="font-size:11px">${p.to_destination || p.from_to?.split('→')[1] || 'To'}</b><p style="font-size:8px;color:#64748b">Destination</p></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            ${p.date ? `<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">📅 ${p.date}</span>` : ''}
+            ${p.time ? `<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">🕒 ${p.time}</span>` : ''}
+            ${p.seats ? `<span style="font-size:8px;background:#dcfce7;padding:3px 6px;border-radius:6px">💺 ${p.seats}</span>` : ''}
+            ${p.price ? `<span style="font-size:8px;background:#fef3c7;padding:3px 6px;border-radius:6px">Rs ${p.price}</span>` : '<span style="font-size:8px;background:#dcfce7;padding:3px 6px;border-radius:6px">Free Pool</span>'}
+          </div>
+        ` : `<p style="font-size:8px;color:#94a3b8">${p.from_to || ''}</p>`}
+        <h4 style="font-size:12px;margin-top:6px">${p.title}</h4>
+        <p style="font-size:10px;color:#64748b;margin-top:4px">${p.description}</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <p style="font-size:9px;color:#16a34a">✓ ${p.name} • ${p.flat} • ${p.society_id.toUpperCase()}</p>
+          <a href="https://wa.me/91${p.phone}?text=Hi, regarding ${p.type}: ${encodeURIComponent(p.from_source||'') } to ${encodeURIComponent(p.to_destination||'') } on ${p.date||''} ${p.time||''} - ${encodeURIComponent(p.title)}" target="_blank" style="font-size:9px;background:#f59e0b;color:white;padding:4px 8px;border-radius:20px;text-decoration:none">Contact</a>
+        </div>
+      </div>`}).join('');
+  }catch(e){
+    feed.innerHTML = `<div class="empty"><b>🤝</b>Backend offline<br>No seva in ${selectedSociety.toUpperCase()} yet</div>`;
+  }
+}
+
+async function submitPost(){
+  const name = document.getElementById('userName').value.trim();
+  const flat = document.getElementById('userFlat').value.trim();
+  const phone = document.getElementById('userPhone').value.trim();
+  if(!name || !phone){alert('Name and phone required for contact'); return;}
+  
+  const payload = {
+    society_id: selectedSociety,
+    name, flat, phone,
+    photos: []
+  };
+
+  let url = '';
+  if(postType === 'haat'){
+    payload.title = document.getElementById('haatTitle').value.trim();
+    payload.description = document.getElementById('haatDesc').value.trim();
+    payload.category = document.getElementById('haatCategory').value;
+    payload.price = document.getElementById('haatPrice').value;
+    if(!payload.title || !payload.description){alert('Title and description required'); return;}
+    url = apiBase+'/api/haat/create';
+  } else {
+    payload.type = document.getElementById('sevaType').value;
+    payload.title = document.getElementById('sevaTitle').value.trim();
+    payload.description = document.getElementById('sevaDesc').value.trim();
+    // BlaBla style fields
+    const fromSel = document.getElementById('sevaFrom').value;
+    const fromCustom = document.getElementById('sevaFromCustom').value.trim();
+    const toSel = document.getElementById('sevaTo').value;
+    const toCustom = document.getElementById('sevaToCustom').value.trim();
+    const fromVal = fromSel==='Custom' ? fromCustom : fromSel;
+    const toVal = toSel==='Custom' ? toCustom : toSel;
+    const dateVal = document.getElementById('sevaDate').value;
+    const timeVal = document.getElementById('sevaTime').value;
+    const seatsVal = document.getElementById('sevaSeats').value;
+    const priceVal = document.getElementById('sevaPrice').value;
+    payload.from_source = fromVal;
+    payload.to_destination = toVal;
+    payload.from_to = `${fromVal} → ${toVal}`;
+    payload.date = dateVal;
+    payload.time = timeVal;
+    payload.seats = seatsVal;
+    payload.price = priceVal;
+    payload.when = `${dateVal} ${timeVal} • ${seatsVal} ${priceVal ? '• Rs '+priceVal : ''}`.trim();
+    // For list view compatibility
+    if(payload.type==='Car Pool' || payload.type==='Share Auto'){
+      if(!fromVal || !toVal){alert('Select From and To'); return;}
+      if(!dateVal){alert('Select Date'); return;}
+    }
+    if(!payload.title || !payload.description){alert('Title and description required'); return;}
+    url = apiBase+'/api/seva/create';
+  }
+
+  try{
+    const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || 'Failed');
+    // Save verified user locally
+    localStorage.setItem('verifiedUser', JSON.stringify({name,flat,phone,society_id:selectedSociety}));
+    closePostModal();
+    // Clear forms
+    document.getElementById('haatTitle').value=''; document.getElementById('haatDesc').value=''; document.getElementById('haatPrice').value='';
+    document.getElementById('sevaTitle').value=''; document.getElementById('sevaDesc').value='';
+    loadFeeds();
+    alert('✅ Posted to '+selectedSociety.toUpperCase()+' '+(postType==='haat'?'Haat':'Seva'));
+  }catch(e){
+    // Fallback localStorage if backend offline
+    const key = (postType==='haat'?'haat_':'seva_')+selectedSociety;
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.push({...payload, id:Date.now().toString(), created_at:new Date().toISOString()});
+    localStorage.setItem(key, JSON.stringify(arr));
+    closePostModal();
+    loadFeeds();
+    alert('⚠️ Backend offline, saved locally (will sync when online)');
+  }
+}
+
+// Login Gate Logic - Required to get self user
+function checkLoginGate(){
+  const verified = localStorage.getItem('verifiedUser');
+  if(verified){
+    try{
+      const u = JSON.parse(verified);
+      // If status is approved or pending, allow but show badge
+      document.getElementById('loginGate').classList.remove('show');
+      document.getElementById('loginGate').style.display='none';
+      updateLoggedUserUI(u);
+      return true;
+    }catch(e){}
+  }
+  // No user, show login gate
+  document.getElementById('loginGate').classList.add('show');
+  document.getElementById('loginGate').style.display='flex';
+  document.getElementById('loggedUserLabel').textContent='Not logged in — Login required';
+  return false;
+}
+
+function updateLoggedUserUI(u){
+  const chip = document.getElementById('userChip');
+  const label = document.getElementById('loggedUserLabel');
+  if(!u){ chip.style.display='none'; label.textContent='Not logged in'; return; }
+  chip.style.display='inline-block';
+  chip.textContent = `${u.name?.split(' ')[0] || 'User'} • ${u.flat || ''} ${u.status==='pending' ? '⏳' : '✓'}`;
+  chip.style.background = u.status==='pending' ? '#f59e0b' : '#16a34a';
+  label.textContent = `${u.status==='pending' ? 'Pending: ' : 'Logged in: '}${u.name} • ${u.society_id?.toUpperCase() || selectedSociety.toUpperCase()} ${u.flat} ${u.status==='pending' ? '(awaiting approval)' : '✓'}`;
+  label.style.color = u.status==='pending' ? '#d97706' : '#16a34a';
+}
+
+async function doLogin(){
+  const phone = document.getElementById('gatePhone').value.trim();
+  const soc = document.getElementById('gateSociety').value;
+  const msgEl = document.getElementById('loginMsg');
+  const btn = document.getElementById('loginBtn');
+  if(phone.length < 10){msgEl.innerHTML='<div style="background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;font-size:11px">Enter 10 digit phone</div>'; return;}
+  btn.textContent='Verifying...'; btn.disabled=true;
+  msgEl.innerHTML='<div style="font-size:11px;color:#64748b">Checking backend...</div>';
+  try{
+    const res = await fetch(apiBase+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone, society_id: soc})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || 'Not found');
+    const u = data.user;
+    const status = data.status;
+    // Save as verifiedUser for auto-fill
+    localStorage.setItem('verifiedUser', JSON.stringify({...u, status}));
+    localStorage.setItem('society', u.society_id || soc);
+    selectedSociety = (u.society_id || soc).toLowerCase();
+    msgEl.innerHTML=`<div style="background:#dcfce7;color:#166534;padding:8px;border-radius:8px;font-size:11px">✅ ${data.message}<br><b>${u.name}</b> • ${u.society_id.toUpperCase()} ${u.flat} • ${status}</div>`;
+    setTimeout(()=>{
+      document.getElementById('loginGate').classList.remove('show');
+      document.getElementById('loginGate').style.display='none';
+      updateLoggedUserUI({...u, status});
+      selectSociety(selectedSociety);
+      loadFeeds();
+    }, 800);
+  }catch(e){
+    msgEl.innerHTML=`<div style="background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;font-size:11px">❌ ${e.message}<br>Not registered? Click Register Flat →</div>`;
+  }finally{
+    btn.textContent='Login / Verify'; btn.disabled=false;
+  }
+}
+
+function goToRegisterFromLogin(){
+  const soc = document.getElementById('gateSociety').value || selectedSociety;
+  window.location.href='societyhaat-tower-flat.html?society='+soc;
+}
+
+function logoutUser(){
+  if(confirm('Logout? You will need phone login again to post')){
+    localStorage.removeItem('verifiedUser');
+    localStorage.removeItem('pendingUser');
+    checkLoginGate();
+  }
+}
+
+// Make profile button logout if logged in
+function handleProfileClick(){
+  const v = localStorage.getItem('verifiedUser');
+  if(v){
+    if(confirm('Logged in as '+JSON.parse(v).name+'\n\nLogout or go to Admin?')){
+      logoutUser();
+    }
+  } else {
+    goRegister();
+  }
+}
+
+// Init
+checkLoginGate();
+selectSociety(selectedSociety);
+switchTab(currentTab);
+loadFeeds();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 </script>
 </body>
 </html>

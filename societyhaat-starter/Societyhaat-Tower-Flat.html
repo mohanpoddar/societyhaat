@@ -63,7 +63,12 @@ button{width:100%;padding:12px;border:none;border-radius:10px;margin-top:12px;fo
 </div>
 
 <script>
-const apiBase='http://localhost:8000';
+const apiBase = (() => {
+  const h = window.location.hostname;
+  if(h === '192.168.10.50' || h === 'localhost' || h === '127.0.0.1') return `http://${h}:8000`;
+  if(window.location.port === '8000') return window.location.origin;
+  return 'http://192.168.10.50:8000';
+})();
 
 // 3 SOCIETIES CONFIG — in consideration for all 3
 const SOCIETIES={
@@ -143,11 +148,27 @@ function updateBtn(){
 function selectFlat(f){selectedFlat=f;updateSelectedInfo();updateBtn();renderFlats(document.getElementById('flatSearch').value?currentFlats.filter(fl=>fl.includes(document.getElementById('flatSearch').value)):currentFlats);}
 async function register(){
   if(!selectedTower||!selectedFlat){document.getElementById('msg').innerHTML='<div class="error">Select Society, Block, Tower and Flat</div>';return;}
+  const nameVal=document.getElementById('name').value.trim();
+  const phoneVal=document.getElementById('phone').value.trim();
+  if(!nameVal || !phoneVal){document.getElementById('msg').innerHTML='<div class="error">Enter Name and Phone</div>';return;}
   const full=`${selectedTower} - ${selectedFlat}`; 
-  const body={society_id:currentSociety,flat:full,name:document.getElementById('name').value,phone:document.getElementById('phone').value};
+  const body={society_id:currentSociety,flat:full,name:nameVal,phone:phoneVal};
   const el=document.getElementById('msg'); el.innerHTML='Registering...';
-  try{const res=await fetch(apiBase+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await res.json();if(res.ok)el.innerHTML=`<div class="success">✅ ${data.message}<br>${currentSociety.toUpperCase()} ${full}</div>`;else el.innerHTML=`<div class="error">❌ ${data.detail}</div>`;}catch(e){el.innerHTML='<div class="error">Backend offline</div>'}
+  try{
+    const res=await fetch(apiBase+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    if(res.ok){
+      el.innerHTML=`<div class="success">✅ ${data.message}<br>${currentSociety.toUpperCase()} ${full}<br><br><button onclick="goToHaat()" style="padding:8px 12px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:700">Go to Haat →</button></div>`;
+      // Save pending user info for auto-fill in Haat posting (will be upgraded to approved after admin approval + login)
+      localStorage.setItem('pendingUser', JSON.stringify({name:nameVal,phone:phoneVal,flat:full,society_id:currentSociety}));
+      localStorage.setItem('verifiedUser', JSON.stringify({name:nameVal,phone:phoneVal,flat:full,society_id:currentSociety,status:'pending'}));
+    }else{
+      el.innerHTML=`<div class="error">❌ ${data.detail}</div>`;
+    }
+  }catch(e){el.innerHTML='<div class="error">Backend offline</div>'}
 }
+function goToHaat(){window.location.href='societyhaat-web.html?society='+currentSociety;}
+
 // loadUsers removed - PII leak fix: user list only in admin panel
 
 fetch(apiBase+'/api/societies').then(r=>{document.getElementById('status').textContent=r.ok?'connected ✅':'offline'}).catch(()=>{document.getElementById('status').textContent='offline'});
