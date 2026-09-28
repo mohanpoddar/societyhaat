@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Society Haat - Haat + Seva</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
+  body{background:#f8fafc;max-width:420px;margin:0 auto;min-height:100vh;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;background:white}
+  .header{background:white;padding:16px 16px 8px;position:sticky;top:0;z-index:10;border-bottom:1px solid #e2e8f0}
+  .header h1{font-size:20px;font-weight:800}
+  .header p{font-size:11px;color:gray}
+  .soc-scroll{display:flex;gap:10px;overflow-x:auto;padding:12px 16px;scrollbar-width:none}
+  .soc-card{min-width:200px;padding:12px;border-radius:14px;border:1.5px solid #e2e8f0;background:white;cursor:pointer}
+  .soc-card.active{background:#16a34a;color:white;border-color:#16a34a}
+  .soc-card.active:nth-child(2){background:#2563eb;border-color:#2563eb}
+  .soc-card.active:nth-child(3){background:#ea580c;border-color:#ea580c}
+  .soc-card b{font-size:12px;display:block}
+  .soc-card small{font-size:9px;opacity:0.8}
+  .badge{font-size:10px;background:#f1f5f9;padding:2px 6px;border-radius:20px;margin-top:6px;display:inline-block}
+  .tabs{margin:12px 16px;background:#e2e8f0;border-radius:12px;padding:4px;display:flex}
+  .tab{flex:1;padding:10px;text-align:center;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;color:gray}
+  .tab.active{background:white;color:black;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
+  .list{padding:0 16px 80px}
+  .card{border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:14px;background:white}
+  .img-wrap{height:180px;background:#fff7ed;position:relative;display:flex;align-items:center;justify-content:center}
+  .img-wrap .count{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.8);color:white;font-size:10px;padding:4px 8px;border-radius:20px}
+  .img-wrap .iso{position:absolute;top:10px;left:10px;background:#16a34a;color:white;font-size:10px;padding:4px 8px;border-radius:20px;font-weight:bold}
+  .carousel{display:flex;gap:8px}
+  .dot{width:100%;text-align:center;font-size:11px;color:gray}
+  .content{padding:14px}
+  .cat{background:#fef3c7;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:bold}
+  .price{font-weight:800;font-size:16px}
+  .bottom{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:white;border-top:1px solid #e2e8f0;display:flex;justify-content:space-around;padding:8px 0}
+  .bottom div{text-align:center;font-size:10px;color:gray;cursor:pointer}
+  .bottom .add{width:36px;height:36px;background:#16a34a;border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;font-size:20px}
+</style>
+</head>
+<body>
+<div class="header"><h1>Society Haat</h1><p>Haat + Seva • 1-2km Greater Noida West • Backend: <span id="status">checking localhost:8000...</span></p></div>
+<div class="soc-scroll" id="societies"></div>
+<div class="tabs"><div class="tab active" data-tab="Haat" onclick="switchTab('Haat')">🛒 Haat - Bazaar</div><div class="tab" data-tab="Seva" onclick="switchTab('Seva')">🤝 Seva - Help & Pool</div></div>
+<div class="list" id="listings"></div>
+<div class="bottom"><div>🏠<br>Home</div><div>🛒<br>Haat</div><div><div class="add">+</div>Post</div><div>🤝<br>Seva</div><div>👤<br>Profile</div></div>
+<script>
+let selectedSociety='sev2', selectedTab='Haat';
+let societiesData=[];
+async function loadSocieties(){
+  try{
+    const res=await fetch('http://localhost:8000/api/societies');
+    const data=await res.json();
+    document.getElementById('status').textContent='connected ✅';
+    societiesData=data.societies;
+    renderSocieties();
+    loadListings();
+  }catch(e){
+    document.getElementById('status').textContent='offline - using demo data (start backend: uvicorn app.main:app --port 8000)';
+    societiesData=[
+      {id:'sev2',code:'SEV2',full_name:'Supertech Eco Village 2',display:'Supertech Eco Village 2 (SEV2)',color:'#16a34a',listings:142,active:true},
+      {id:'apcpth',code:'APCPTH',full_name:'Amrapali Centurion Park Terrace Homes',display:'Amrapali Centurion Park Terrace Homes (APCPTH)',color:'#2563eb',listings:89,active:true},
+      {id:'alp',code:'ALP',full_name:'Amrapali Leisure Park',display:'Amrapali Leisure Park (ALP)',color:'#ea580c',listings:67,active:true}
+    ];
+    renderSocieties();
+    renderDemo();
+  }
+}
+function renderSocieties(){
+  document.getElementById('societies').innerHTML=societiesData.map(s=>`
+    <div class="soc-card ${s.id===selectedSociety?'active':''}" onclick="selectSoc('${s.id}')">
+      <div style="display:flex;gap:6px;align-items:center"><div style="width:28px;height:28px;border-radius:50%;background:white;color:${s.color};display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:10px">${s.code}</div><span class="badge">${s.listings} listings</span></div>
+      <b style="margin-top:8px">${s.display}</b><small>${s.full_name}</small>
+    </div>
+  `).join('');
+}
+function selectSoc(id){selectedSociety=id;renderSocieties();loadListings();}
+function switchTab(tab){selectedTab=tab;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));loadListings();}
+async function loadListings(){
+  try{
+    const res=await fetch(`http://localhost:8000/api/listings?society_id=${selectedSociety}&tab=${selectedTab}`);
+    const data=await res.json();
+    renderListings(data.listings);
+  }catch(e){renderDemo();}
+}
+function renderListings(items){
+  if(!items.length){document.getElementById('listings').innerHTML=`<p style="text-align:center;color:gray;margin-top:40px">No ${selectedTab} listings in ${selectedSociety.toUpperCase()}<br><small>Isolated view - secure</small></p>`;return;}
+  document.getElementById('listings').innerHTML=items.map(it=>`
+    <div class="card">
+      <div class="img-wrap">
+        <div class="iso">🔒 Isolated: ${it.society_id.toUpperCase()} only</div>
+        <div class="count">${(it.images||[]).length} photos</div>
+        <div style="text-align:center"><div style="font-size:48px">🎂</div><div style="font-weight:bold;font-size:12px">${it.title}</div><div style="font-size:10px;color:gray">${(it.images||[]).join(' • ')}</div><div style="font-size:10px;color:gray">Swipe: ${(it.images||[]).length} photos - WebP 800x800</div></div>
+      </div>
+      <div class="content">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span class="cat">${it.category}</span><span class="price">${it.price==0?'FREE Seva':'Rs '+it.price}</span></div>
+        <div style="font-weight:700;margin-top:6px">${it.title}</div>
+        <div style="font-size:12px;color:gray;margin-top:8px;display:flex;gap:8px;align-items:center"><div style="width:24px;height:24px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center">${it.user[0]}</div><div><div style="font-weight:600;font-size:12px">${it.user}</div><div style="font-size:10px">✔ ${it.verified}</div></div></div>
+      </div>
+    </div>
+  `).join('');
+}
+function renderDemo(){
+  const demo=[
+    {id:"1",society_id:selectedSociety,tab:selectedTab,category:selectedTab==="Haat"?"Home Food":"Car Pooling",title:selectedTab==="Haat"?"Homemade Chocolate Cake - 3 photos":"Pari Chowk 8:30 AM - 2 seats - SEV2 to APCPTH",images:["cake1.webp","cake2.webp","cake3.webp"],price:selectedTab==="Haat"?450:0,verified:selectedSociety.toUpperCase()+" Tower 4 - 1202",user:"Sunita Aunty",isolated:true}
+  ];
+  renderListings(demo);
+}
+loadSocieties();
+</script>
+</body>
+</html>
