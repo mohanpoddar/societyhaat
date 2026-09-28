@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Society Haat - Admin Panel SEV2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
+body{max-width:900px;margin:0 auto;background:#f8fafc;min-height:100vh;padding-bottom:40px}
+.header{padding:18px 20px;background:white;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center}
+.card{margin:16px;background:white;border:1px solid #e2e8f0;border-radius:16px;padding:16px}
+.stat{display:flex;gap:12px;margin:10px 0}
+.stat-box{flex:1;padding:14px;border-radius:12px;text-align:center}
+.stat-pending{background:#fef3c7;border:1px solid #fde68a}
+.stat-approved{background:#dcfce7;border:1px solid #bbf7d0}
+.stat-box b{font-size:22px;display:block}
+.btn{padding:9px 14px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px}
+.btn-green{background:#16a34a;color:white}
+.btn-red{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.btn-gray{background:#f1f5f9;color:#334155}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+input,select{padding:10px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{ text-align:left;padding:10px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#64748b}
+td{padding:10px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+.badge{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.badge-pending{background:#fef3c7;color:#92400e}
+.badge-approved{background:#dcfce7;color:#166534}
+.search{flex:1;min-width:160px}
+@media(max-width:600px){table{font-size:11px}.header{flex-direction:column;gap:6px;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="header">
+<div><h2 style="font-size:18px">Society Haat — Admin SEV2</h2><p style="font-size:11px;color:gray">Approve pending registrations • Backend: <span id="status">checking...</span></p></div>
+<div><button class="btn btn-gray" onclick="loadAll()">↻ Refresh</button></div>
+</div>
+
+<div class="card">
+<div class="stat">
+<div class="stat-box stat-pending"><b id="pendingCount">-</b><span style="font-size:11px">Pending Approval</span></div>
+<div class="stat-box stat-approved"><b id="usersCount">-</b><span style="font-size:11px">Approved Users</span></div>
+</div>
+<div class="row">
+<input id="search" class="search" placeholder="Search name, phone, flat e.g. B16, NITU, 9560" oninput="render()">
+<select id="societyFilter" onchange="onSocietyFilterChange()"><option value="">All Societies</option><option value="sev2">SEV2</option><option value="apcpth">APCPTH</option><option value="alp">ALP</option></select>
+<select id="blockFilter" onchange="onBlockFilterChange()"><option value="">All Blocks</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
+<select id="towerFilter" onchange="render()"><option value="">All Towers</option></select>
+<button class="btn btn-green" onclick="bulkApprove()">Approve All Pending</button>
+</div>
+<p style="font-size:10px;color:gray;margin-top:6px">Data path: <code>backend/data/</code> — single source of truth (app/data deleted)</p>
+</div>
+
+<div class="card">
+<h3 style="font-size:14px;margin-bottom:8px">⏳ Pending Approval — One Click Approve</h3>
+<div style="overflow:auto;max-height:60vh">
+<table><thead><tr><th>Society</th><th>Flat</th><th>Name</th><th>Phone</th><th>Time</th><th>Action</th></tr></thead><tbody id="pendingTable"><tr><td colspan=6>Loading...</td></tr></tbody></table>
+</div>
+</div>
+
+<div class="card">
+<h3 style="font-size:14px;margin-bottom:8px">✅ Approved Users</h3>
+<div style="overflow:auto;max-height:40vh">
+<table><thead><tr><th>Society</th><th>Flat</th><th>Name</th><th>Phone</th><th>Approved At</th></tr></thead><tbody id="usersTable"><tr><td colspan=4>Loading...</td></tr></tbody></table>
+</div>
+</div>
+
+<script>
+const apiBase='http://localhost:8000';
+let pendingData=[], usersData=[];
+
+async function check(){try{const r=await fetch(apiBase+'/api/societies');document.getElementById('status').textContent=r.ok?'connected ✅':'offline';}catch(e){document.getElementById('status').textContent='offline';}}
+check();
+
+function genTowers(){
+ const SOCIETIES={
+  sev2:{"A":["A1","A2","A3","A4","A5","A6","A7","A8","A9","A10"],"B":["B1","B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","B12","B13","B14","B15","B16","B17","B18","B19","B20"],"C":["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15"],"D":["D1","D2","D3","D4","D5","D6","D7","D8","D9","D10"]},
+  apcpth:{"A":["A1","A2","A3","A4","A5","A6"],"B":["B1","B2","B3","B4","B5","B6","C1","C2"],"C":["T1","T2","T3","T4","T5","T6","T7","T8"]},
+  alp:{"A":["A1","A2","A3","A4"],"B":["B1","B2","B3","B4","B5"],"C":["C1","C2","C3","C4","L1","L2"]}
+ };
+ let all=[]; let blocks={}; for(let soc in SOCIETIES){for(let b in SOCIETIES[soc]){if(!blocks[b])blocks[b]=[]; blocks[b]=[...new Set([...blocks[b],...SOCIETIES[soc][b]])]; all=all.concat(SOCIETIES[soc][b]);}} 
+ return {blocks,all,SOCIETIES};
+}
+const {blocks:blocksData,all:allTowers}=genTowers();
+
+function updateTowerFilterOptions(){
+ const blockF=document.getElementById('blockFilter').value;
+ const sel=document.getElementById('towerFilter');
+ const current=sel.value;
+ sel.innerHTML='<option value="">All Towers</option>';
+ let list=blockF?blocksData[blockF]:allTowers;
+ list.forEach(t=>{let o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o);});
+ if(list.includes(current))sel.value=current;
+}
+function onBlockFilterChange(){updateTowerFilterOptions();render();}
+function onSocietyFilterChange(){render();}
+updateTowerFilterOptions();
+
+async function loadAll(){
+ try{
+  const [pRes,uRes,sRes]=await Promise.all([fetch(apiBase+'/api/auth/pending'),fetch(apiBase+'/api/auth/users'),fetch(apiBase+'/api/auth/stats')]);
+  const pData=await pRes.json();const uData=await uRes.json();const sData=await sRes.json();
+  pendingData=pData.pending||[];usersData=uData.users||[];
+  document.getElementById('pendingCount').textContent=sData.pending_count ?? pendingData.length;
+  document.getElementById('usersCount').textContent=sData.total_users ?? usersData.length;
+  render();
+ }catch(e){document.getElementById('pendingTable').innerHTML='<tr><td colspan=5>Backend offline</td></tr>';}
+}
+
+function render(){
+ const q=document.getElementById('search').value.toLowerCase();
+ const blockF=document.getElementById('blockFilter').value;
+ const towerF=document.getElementById('towerFilter').value;
+ const socF=document.getElementById('societyFilter').value;
+ let filteredPending=pendingData.filter(u=>{
+  const matchQ=!q||(u.name||'').toLowerCase().includes(q)||(u.phone||'').includes(q)||(u.flat||'').toLowerCase().includes(q)||(u.society_id||'').includes(q);
+  const matchB=!blockF||(u.flat||'').startsWith(blockF);
+  const matchT=!towerF||(u.flat||'').includes(towerF);
+  const matchS=!socF||(u.society_id||'sev2')===socF;
+  return matchQ&&matchB&&matchT&&matchS;
+ });
+ let filteredUsers=usersData.filter(u=>{
+  const matchQ=!q||(u.name||'').toLowerCase().includes(q)||(u.phone||'').includes(q)||(u.flat||'').toLowerCase().includes(q)||(u.society_id||'').includes(q);
+  const matchB=!blockF||(u.flat||'').startsWith(blockF);
+  const matchT=!towerF||(u.flat||'').includes(towerF);
+  const matchS=!socF||(u.society_id||'sev2')===socF;
+  return matchQ&&matchB&&matchT&&matchS;
+ });
+
+ document.getElementById('pendingTable').innerHTML=filteredPending.length?filteredPending.map(u=>`<tr>
+  <td><span class="badge badge-pending">${(u.society_id||"sev2").toUpperCase()}</span></td>
+  <td><b>${u.flat}</b></td>
+  <td>${u.name}</td>
+  <td>${u.phone}</td>
+  <td style="font-size:10px;color:gray">${(u.created_at||'').slice(0,16).replace('T',' ')}</td>
+  <td><button class="btn btn-green" onclick="approve('${u.phone}')">✅ Approve</button> <button class="btn btn-red" onclick="reject('${u.phone}')">✕ Reject</button></td>
+ </tr>`).join(''):`<tr><td colspan=6 style="color:gray;padding:20px;text-align:center">No pending requests${q?' for search '+q:''}</td></tr>`;
+
+ document.getElementById('usersTable').innerHTML=filteredUsers.length?filteredUsers.map(u=>`<tr>
+  <td><span class="badge badge-approved">${(u.society_id||"sev2").toUpperCase()}</span></td>
+  <td><b>${u.flat}</b></td>
+  <td>${u.name}</td>
+  <td>${u.phone}</td>
+  <td style="font-size:10px;color:gray">${(u.approved_at||'').slice(0,16).replace('T',' ')}</td>
+ </tr>`).join(''):'<tr><td colspan=5 style="color:gray;padding:20px;text-align:center">No approved users yet</td></tr>';
+}
+
+async function approve(phone){
+ if(!confirm('Approve phone '+phone+' ?'))return;
+ try{const res=await fetch(apiBase+'/api/auth/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone})});const data=await res.json();if(res.ok){loadAll();}else alert(data.detail);}catch(e){alert('Backend offline');}
+}
+async function reject(phone){
+ if(!confirm('Reject and delete phone '+phone+' ?'))return;
+ try{const res=await fetch(apiBase+'/api/auth/reject',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone})});const data=await res.json();if(res.ok){loadAll();}else alert(data.detail);}catch(e){alert('Backend offline');}
+}
+async function bulkApprove(){
+ if(!pendingData.length){alert('No pending');return;}
+ if(!confirm('Approve ALL '+pendingData.length+' pending users?'))return;
+ try{const res=await fetch(apiBase+'/api/auth/bulk-approve',{method:'POST'});const data=await res.json();if(res.ok){alert(data.message);loadAll();}else alert(data.detail);}catch(e){alert('Backend offline');}
+}
+loadAll();
+setInterval(loadAll,10000);
+</script>
+</body>
+</html>

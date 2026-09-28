@@ -1,29 +1,159 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Society Haat - Tower Flat 001</title>
-<style>*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,sans-serif}body{max-width:440px;margin:0 auto;background:white;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;min-height:100vh}.header{padding:16px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:white;z-index:10}.card{margin:14px;border:1px solid #e2e8f0;border-radius:16px;padding:14px}label{font-size:12px;font-weight:700;display:block;margin-top:10px}select,input{width:100%;padding:11px;border:1px solid #e2e8f0;border-radius:10px;margin-top:5px;font-size:13px}button{width:100%;padding:12px;border:none;border-radius:10px;margin-top:12px;font-weight:700;cursor:pointer}.btn-primary{background:#16a34a;color:white}.btn-secondary{background:#f1f5f9}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;max-height:300px;overflow:auto}.flat-btn{padding:10px;border:1px solid #e2e8f0;border-radius:10px;text-align:center;font-size:12px;font-weight:600;background:white;cursor:pointer}.flat-btn.selected{background:#16a34a;color:white;border-color:#16a34a}.msg{margin-top:10px;padding:10px;border-radius:10px;font-size:12px}.success{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}</style>
-</head><body>
-<div class="header"><h2 style="font-size:18px">Society Haat - SEV2 Tower Search</h2><p style="font-size:11px;color:gray">Block → Tower → Flat (G+20, 8 flats) • Backend: <span id="status">checking</span></p><p style="font-size:11px;color:#16a34a">Ground: 001,002,003... 8th floor 6 = 806</p></div>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Society Haat - Tower/Flat Search</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
+body{max-width:440px;margin:0 auto;background:white;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;min-height:100vh}
+.header{padding:16px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:white;z-index:10}
+.card{margin:14px;border:1px solid #e2e8f0;border-radius:16px;padding:14px}
+label{font-size:12px;font-weight:700;display:block;margin-top:10px}
+select,input{width:100%;padding:11px;border:1px solid #e2e8f0;border-radius:10px;margin-top:5px;font-size:13px}
+button{width:100%;padding:12px;border:none;border-radius:10px;margin-top:12px;font-weight:700;cursor:pointer}
+.btn-primary{background:#16a34a;color:white}
+.btn-secondary{background:#f1f5f9}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;max-height:320px;overflow:auto}
+.flat-btn{padding:10px;border:1px solid #e2e8f0;border-radius:10px;text-align:center;font-size:12px;font-weight:600;background:white;cursor:pointer}
+.flat-btn:hover{background:#f8fafc}
+.flat-btn.selected{background:#16a34a;color:white;border-color:#16a34a}
+.msg{margin-top:10px;padding:10px;border-radius:10px;font-size:12px}
+.success{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.society-tabs{display:flex;gap:6px;margin-top:8px}
+.soc-tab{flex:1;padding:8px;border:1px solid #e2e8f0;border-radius:10px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;background:#f8fafc}
+.soc-tab.active{background:#16a34a;color:white;border-color:#16a34a}
+</style>
+</head>
+<body>
+<div class="header">
+<h2 style="font-size:18px">Society Haat - Tower Search</h2>
+<p style="font-size:11px;color:gray;margin-top:2px">3 Societies • Block → Tower → Flat • Backend: <span id="status">checking...</span></p>
+<div class="society-tabs">
+<div class="soc-tab active" id="tab-sev2" onclick="setSociety('sev2')">SEV2</div>
+<div class="soc-tab" id="tab-apcpth" onclick="setSociety('apcpth')">APCPTH</div>
+<div class="soc-tab" id="tab-alp" onclick="setSociety('alp')">ALP</div>
+</div>
+<p style="font-size:10px;color:#16a34a;margin-top:6px">Current: <b id="socDisplay">SEV2</b> • Ground: 001,002...</p>
+</div>
+
 <div class="card">
-<label>Block</label><select id="block" onchange="onBlockChange()"><option value="">Select Block</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
-<label>Tower</label><select id="tower" onchange="onTowerChange()"><option>Select Tower</option></select>
-<label>Flat - Search (e.g., 001 or 806)</label><input id="flatSearch" placeholder="Type 001 or 806" oninput="filterFlats()">
+<label>Block</label>
+<select id="block" onchange="onBlockChange()"><option value="">Select Block</option></select>
+
+<div style="display:flex;gap:8px">
+<div style="flex:1"><label>Tower - Search</label><input id="towerSearch" placeholder="Type tower e.g. B16" oninput="filterTowers()"></div>
+<div style="flex:1"><label>Tower Select</label><select id="tower" onchange="onTowerChange()"><option value="">Select Tower</option></select></div>
+</div>
+
+<label>Flat - All flats of selected tower (001..2008)</label>
+<input id="flatSearch" placeholder="Search flat e.g. 001 or 806" oninput="filterFlats()" style="margin-bottom:6px">
 <div id="flatsGrid" class="grid"></div>
 <div style="font-size:11px;color:gray;margin-top:6px">Selected: <b id="sel">None</b> • Full: <b id="full">-</b></div>
-<label>Name</label><input id="name" value="Sunita Aunty"><label>Phone</label><input id="phone" value="9811111112">
-<button class="btn-primary" onclick="register()">Register → B16-001 / 806</button><div id="msg"></div>
+
+<label>Name</label><input id="name" placeholder="Resident Name">
+<label>Phone</label><input id="phone" placeholder="Mobile number" type="tel" maxlength="10" inputmode="numeric">
+<button class="btn-primary" id="regBtn" onclick="register()">Select Society → Block → Tower → Flat</button>
+<div id="msg"></div>
 </div>
+
+<div class="card" style="background:#f8fafc;border-style:dashed">
+<p style="font-size:11px;color:#64748b;text-align:center">🔒 Registration is private.<br>Admin approval required. Your phone will not be shown publicly.<br><a href="societyhaat-web.html" style="color:#16a34a">← Back to Haat</a> | <a href="societyhaat-admin.html" style="color:#64748b">Admin Panel</a></p>
+</div>
+
 <script>
 const apiBase='http://localhost:8000';
-let towersData={}, blocksData={"A":["A1","A2","A3","A4","A5","A6","A7","A8","A9","A10"],"B":["B1","B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","B12","B13","B14","B15","B16","B17","B18","B19","B20"],"C":["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15"],"D":["D1","D2","D3","D4","D5","D6","D7","D8","D9","D10"]};
-let currentFlats=[], selectedFlat='', selectedTower='';
-function genFlats(){let flats=[];for(let floor=0;floor<=20;floor++){for(let f=1;f<=8;f++){let code=floor==0?`00${f}`:`${floor}0${f}`;flats.push(code)}}return flats;}
-for(let b in blocksData){blocksData[b].forEach(t=>{towersData[t]=genFlats()})}
-function onBlockChange(){const block=document.getElementById('block').value;const sel=document.getElementById('tower');sel.innerHTML='<option>Select Tower</option>';if(!block)return;blocksData[block].forEach(t=>{let o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o)});if(block==='B'){sel.value='B16';onTowerChange();}}
-function onTowerChange(){selectedTower=document.getElementById('tower').value;if(!selectedTower||selectedTower==='Select Tower')return;currentFlats=towersData[selectedTower]||genFlats();renderFlats(currentFlats);}
-function renderFlats(list){const g=document.getElementById('flatsGrid');g.innerHTML=list.map(f=>`<div class="flat-btn ${selectedFlat===f?'selected':''}" onclick="selectFlat('${f}')">${f}</div>`).join('');}
+
+// 3 SOCIETIES CONFIG — in consideration for all 3
+const SOCIETIES={
+ sev2:{name:"Supertech Eco Village 2",blocks:{"A":["A1","A2","A3","A4","A5","A6","A7","A8","A9","A10"],"B":["B1","B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","B12","B13","B14","B15","B16","B17","B18","B19","B20"],"C":["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15"],"D":["D1","D2","D3","D4","D5","D6","D7","D8","D9","D10"]}},
+ apcpth:{name:"Amrapali Centurion Park Terrace Homes",blocks:{"A":["A1","A2","A3","A4","A5","A6"],"B":["B1","B2","B3","B4","B5","B6","C1","C2"],"C":["T1","T2","T3","T4","T5","T6","T7","T8"]}},
+ alp:{name:"Amrapali Leisure Park",blocks:{"A":["A1","A2","A3","A4"],"B":["B1","B2","B3","B4","B5"],"C":["C1","C2","C3","C4","L1","L2"]}}
+};
+
+let currentSociety='sev2';
+let towersData={}, currentFlats=[], selectedFlat='', selectedTower='';
+
+function genFlats(){let a=[];for(let floor=0;floor<=20;floor++){for(let f=1;f<=8;f++){let code=floor===0?`00${f}`:`${floor}0${f}`;a.push(code)}}return a;}
+
+function setSociety(soc){
+ currentSociety=soc;
+ localStorage.setItem('society',soc);
+ document.querySelectorAll('.soc-tab').forEach(t=>t.classList.remove('active'));
+ document.getElementById('tab-'+soc).classList.add('active');
+ document.getElementById('socDisplay').textContent=soc.toUpperCase();
+
+ // rebuild blocks
+ const blockSel=document.getElementById('block');
+ blockSel.innerHTML='<option value="">Select Block</option>';
+ Object.keys(SOCIETIES[soc].blocks).forEach(b=>{let o=document.createElement('option');o.value=b;o.textContent='Block '+b;blockSel.appendChild(o);});
+ // reset towers
+ towersData={};
+ for(let b in SOCIETIES[soc].blocks){SOCIETIES[soc].blocks[b].forEach(t=>{towersData[t]=genFlats()})}
+ document.getElementById('tower').innerHTML='<option value="">Select Tower</option>';
+ document.getElementById('towerSearch').value='';
+ selectedTower='';selectedFlat='';currentFlats=[];renderFlats([]);updateBtn();updateSelectedInfo();
+ // support ?society= param
+ const url=new URL(window.location);url.searchParams.set('society',soc);window.history.replaceState({},'',url);
+}
+
+function onBlockChange(){
+  const block=document.getElementById('block').value;
+  const sel=document.getElementById('tower');
+  sel.innerHTML='<option value="">Select Tower</option>';
+  selectedTower='';selectedFlat='';currentFlats=[];renderFlats([]);updateBtn();updateSelectedInfo();
+  if(!block)return;
+  const towers=SOCIETIES[currentSociety].blocks[block]||[];
+  towers.forEach(t=>{let o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o)});
+}
+function filterTowers(){
+  const q=document.getElementById('towerSearch').value.toUpperCase();
+  const block=document.getElementById('block').value;
+  const sel=document.getElementById('tower');
+  sel.innerHTML='<option value="">Select Tower</option>';
+  let list=block?SOCIETIES[currentSociety].blocks[block]:Object.keys(towersData);
+  if(q){list=list.filter(t=>t.includes(q));}
+  list.forEach(t=>{let o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o)});
+  if(list.length===1){sel.value=list[0];onTowerChange();}
+}
+function onTowerChange(){
+  selectedTower=document.getElementById('tower').value;
+  selectedFlat='';updateBtn();updateSelectedInfo();
+  if(!selectedTower){currentFlats=[];renderFlats([]);return;}
+  currentFlats=towersData[selectedTower]||genFlats();
+  renderFlats(currentFlats);
+  document.getElementById('flatSearch').value='';
+}
+function renderFlats(list){
+  const g=document.getElementById('flatsGrid');
+  g.innerHTML=list.map(f=>`<div class="flat-btn ${selectedFlat===f?'selected':''}" onclick="selectFlat('${f}')">${f}</div>`).join('');
+}
 function filterFlats(){const q=document.getElementById('flatSearch').value;const fil=currentFlats.filter(f=>f.includes(q));renderFlats(fil);}
-function selectFlat(f){selectedFlat=f;document.getElementById('sel').textContent=f;document.getElementById('full').textContent=`${selectedTower} - ${f}`;const q=document.getElementById('flatSearch').value;filterFlats();}
-async function register(){if(!selectedTower||!selectedFlat){document.getElementById('msg').innerHTML='<div class="error">Select Tower and Flat first</div>';return;}const full=`${selectedTower} - ${selectedFlat}`;const body={society_id:'sev2',flat:full,name:document.getElementById('name').value,phone:document.getElementById('phone').value};const el=document.getElementById('msg');el.innerHTML='Registering...';try{const res=await fetch(apiBase+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await res.json();if(res.ok)el.innerHTML=`<div class="success">✅ ${data.message}<br>${full} - Ground 001 fixed</div>`;else el.innerHTML=`<div class="error">❌ ${data.detail}</div>`;}catch(e){el.innerHTML='<div class="error">Backend offline - start uvicorn</div>'}}
+function updateSelectedInfo(){
+  document.getElementById('sel').textContent=selectedFlat||'None';
+  document.getElementById('full').textContent=selectedTower&&selectedFlat?`${currentSociety.toUpperCase()} ${selectedTower} - ${selectedFlat}`:'-';
+}
+function updateBtn(){
+  const btn=document.getElementById('regBtn');
+  if(!selectedTower){btn.textContent=`Select Block → Tower → Flat (${currentSociety.toUpperCase()})`;return;}
+  if(!selectedFlat){btn.textContent=`Register → ${currentSociety.toUpperCase()} ${selectedTower} - Select Flat`;return;}
+  btn.textContent=`Register → ${currentSociety.toUpperCase()} ${selectedTower} - ${selectedFlat}`;
+}
+function selectFlat(f){selectedFlat=f;updateSelectedInfo();updateBtn();renderFlats(document.getElementById('flatSearch').value?currentFlats.filter(fl=>fl.includes(document.getElementById('flatSearch').value)):currentFlats);}
+async function register(){
+  if(!selectedTower||!selectedFlat){document.getElementById('msg').innerHTML='<div class="error">Select Society, Block, Tower and Flat</div>';return;}
+  const full=`${selectedTower} - ${selectedFlat}`; 
+  const body={society_id:currentSociety,flat:full,name:document.getElementById('name').value,phone:document.getElementById('phone').value};
+  const el=document.getElementById('msg'); el.innerHTML='Registering...';
+  try{const res=await fetch(apiBase+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await res.json();if(res.ok)el.innerHTML=`<div class="success">✅ ${data.message}<br>${currentSociety.toUpperCase()} ${full}</div>`;else el.innerHTML=`<div class="error">❌ ${data.detail}</div>`;}catch(e){el.innerHTML='<div class="error">Backend offline</div>'}
+}
+// loadUsers removed - PII leak fix: user list only in admin panel
+
 fetch(apiBase+'/api/societies').then(r=>{document.getElementById('status').textContent=r.ok?'connected ✅':'offline'}).catch(()=>{document.getElementById('status').textContent='offline'});
-onBlockChange();
+
+// Init from URL ?society= or localStorage or default sev2
+const urlSoc=new URLSearchParams(window.location.search).get('society')||localStorage.getItem('society')||'sev2';
+setSociety(['sev2','apcpth','alp'].includes(urlSoc)?urlSoc:'sev2');
+updateBtn();
 </script></body></html>

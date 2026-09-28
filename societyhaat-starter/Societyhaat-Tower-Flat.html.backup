@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Society Haat - SEV2 Tower Search</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,sans-serif}body{max-width:440px;margin:0 auto;background:#fff;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;min-height:100vh}.header{padding:16px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:#fff;z-index:10}.card{margin:14px;border:1px solid #e2e8f0;border-radius:16px;padding:14px}label{font-size:12px;font-weight:700;display:block;margin-top:10px}select,input{width:100%;padding:11px;border:1px solid #e2e8f0;border-radius:10px;margin-top:5px;font-size:13px}button{width:100%;padding:12px;border:none;border-radius:10px;margin-top:12px;font-weight:700;cursor:pointer}.btn-primary{background:#16a34a;color:#fff}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;max-height:320px;overflow:auto}.flat-btn{padding:10px;border:1px solid #e2e8f0;border-radius:10px;text-align:center;font-size:12px;font-weight:600;background:#fff;cursor:pointer}.flat-btn.selected{background:#16a34a;color:#fff;border-color:#16a34a}.msg{margin-top:10px;padding:10px;border-radius:10px;font-size:12px}.success{background:#dcfce7;color:#166534}.error{background:#fee2e2;color:#991b1b}</style>
+</head><body>
+<div class="header"><h2 style="font-size:18px">Society Haat - SEV2 Tower Search</h2><p style="font-size:11px;color:gray">Block → Tower → Flat (G+20, 8 flats/floor) • Backend: <span id="status">checking</span></p><p style="font-size:11px;color:#16a34a">Ground: 001,002,003... 8th floor 6 = 806 (no G)</p></div>
+<div class="card">
+<label>Block</label><select id="block" onchange="onBlockChange()"><option value="">Select Block</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
+<div style="display:flex;gap:8px"><div style="flex:1"><label>Tower Search</label><input id="towerSearch" placeholder="Type tower e.g. B16" oninput="filterTowers()"></div><div style="flex:1"><label>Tower Select</label><select id="tower" onchange="onTowerChange()"><option value="">Select Tower</option></select></div></div>
+<label>Flat - All flats of selected tower (001..2008)</label><input id="flatSearch" placeholder="Search flat e.g. 001 or 806" oninput="filterFlats()">
+<div id="flatsGrid" class="grid"></div>
+<div style="font-size:11px;color:gray;margin-top:6px">Selected: <b id="sel">None</b> • Full: <b id="full">-</b></div>
+<label>Name</label><input id="name" value="Sunita Aunty"><label>Phone</label><input id="phone" value="9811111112">
+<button class="btn-primary" id="regBtn" onclick="register()">Select Block → Tower → Flat</button><div id="msg"></div>
+</div>
+<script>
+const apiBase='http://localhost:8000';
+const blocksData={"A":["A1","A2","A3","A4","A5","A6","A7","A8","A9","A10"],"B":["B1","B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","B12","B13","B14","B15","B16","B17","B18","B19","B20"],"C":["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15"],"D":["D1","D2","D3","D4","D5","D6","D7","D8","D9","D10"]};
+let towersData={}; let currentFlats=[], selectedFlat='', selectedTower='', filteredTowers=[];
+function genFlats(){let a=[];for(let floor=0;floor<=20;floor++){for(let f=1;f<=8;f++){let code=floor===0?`00${f}`:`${floor}0${f}`;a.push(code)}}return a;}
+for(let b in blocksData){blocksData[b].forEach(t=>{towersData[t]=genFlats()})}
+function onBlockChange(){
+  const block=document.getElementById('block').value;
+  const sel=document.getElementById('tower');
+  sel.innerHTML='<option value="">Select Tower</option>';
+  selectedTower='';selectedFlat='';currentFlats=[];renderFlats([]);updateBtn();updateSelectedInfo();
+  if(!block){filteredTowers=[];return;}
+  filteredTowers=blocksData[block];
+  filteredTowers.forEach(t=>{let o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o)});
+}
+function filterTowers(){
+  const q=document.getElementById('towerSearch').value.toUpperCase();
+  const block=document.getElementById('block').value;
+  const sel=document.getElementById('tower');
+  sel.innerHTML='<option value="">Select Tower</option>';
+  let list=block?blocksData[block]:Object.keys(towersData);
+  if(q){list=list.filter(t=>t.includes(q));}
+  list.forEach(t=>{let o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o)});
+  if(list.length===1){sel.value=list[0];onTowerChange();}
+}
+function onTowerChange(){
+  selectedTower=document.getElementById('tower').value;
+  selectedFlat='';updateBtn();updateSelectedInfo();
+  if(!selectedTower){currentFlats=[];renderFlats([]);return;}
+  currentFlats=towersData[selectedTower]||genFlats();
+  renderFlats(currentFlats);
+}
+function renderFlats(list){
+  const g=document.getElementById('flatsGrid');
+  g.innerHTML=list.map(f=>`<div class="flat-btn ${selectedFlat===f?'selected':''}" onclick="selectFlat('${f}')">${f}</div>`).join('');
+}
+function filterFlats(){const q=document.getElementById('flatSearch').value;const fil=currentFlats.filter(f=>f.includes(q));renderFlats(fil);}
+function updateSelectedInfo(){
+  document.getElementById('sel').textContent=selectedFlat||'None';
+  document.getElementById('full').textContent=selectedTower&&selectedFlat?`${selectedTower} - ${selectedFlat}`:'-';
+}
+function updateBtn(){
+  const btn=document.getElementById('regBtn');
+  if(!selectedTower){btn.textContent='Select Block → Tower → Flat';return;}
+  if(!selectedFlat){btn.textContent=`Register → ${selectedTower} - Select Flat (e.g. 001)`;return;}
+  btn.textContent=`Register → ${selectedTower} - ${selectedFlat}`;
+}
+function selectFlat(f){selectedFlat=f;updateSelectedInfo();updateBtn();filterFlats();}
+async function register(){
+  if(!selectedTower||!selectedFlat){document.getElementById('msg').innerHTML='<div class="error">Select Block, Tower and Flat (e.g. B16 - 001)</div>';return;}
+  const full=`${selectedTower} - ${selectedFlat}`; const body={society_id:'sev2',flat:full,name:document.getElementById('name').value,phone:document.getElementById('phone').value};
+  const el=document.getElementById('msg'); el.innerHTML='Registering...';
+  try{const res=await fetch(apiBase+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await res.json();if(res.ok)el.innerHTML=`<div class="success">✅ ${data.message}<br>${full} - Ground 001 system</div>`;else el.innerHTML=`<div class="error">❌ ${data.detail}</div>`;}catch(e){el.innerHTML='<div class="error">Backend offline - start: uvicorn app.main:app --port 8000 --reload</div>'}
+}
+fetch(apiBase+'/api/societies').then(r=>{document.getElementById('status').textContent=r.ok?'connected ✅':'offline'}).catch(()=>{document.getElementById('status').textContent='offline'});
+updateBtn();
+</script></body></html>

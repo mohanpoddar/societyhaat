@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
 import json
+import os
 from pathlib import Path
-from datetime import datetime
 
 router = APIRouter()
 
-# SINGLE SOURCE OF TRUTH: backend/data
+# Path to data folder
 DATA_DIR = Path(__file__).parent.parent / "data"
 USERS_FILE = DATA_DIR / "users.json"
 PENDING_FILE = DATA_DIR / "pending.json"
@@ -16,6 +16,7 @@ def load_json(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
+            # Handle both list and dict wrapper {"pending": [...]}
             if isinstance(data, dict):
                 if "pending" in data:
                     return data["pending"]
@@ -33,63 +34,78 @@ def save_json(file_path, data):
 
 @router.post("/register")
 async def register(payload: dict):
-    society_id = payload.get("society_id", "sev2").strip() or "sev2"
+    society_id = payload.get("society_id", "sev2")
     flat = payload.get("flat", "").strip()
     name = payload.get("name", "").strip()
     phone = payload.get("phone", "").strip()
 
     if not flat or not name or not phone:
         raise HTTPException(status_code=400, detail="Name, phone and flat are required")
+
     if len(phone) < 10:
         raise HTTPException(status_code=400, detail="Invalid phone number")
 
     users = load_json(USERS_FILE)
     pending = load_json(PENDING_FILE)
 
-    # Per-society phone uniqueness: same phone can register in different societies
+    # --- FIXED LOGIC: Check both pending AND users with SAME message ---
+    # Check if phone already exists in approved users
     for u in users:
-        if u.get("phone") == phone and u.get("society_id", "sev2") == society_id:
-            raise HTTPException(status_code=400, detail=f"Phone is already registered in {society_id.upper()}.")
-    for p in pending:
-        if p.get("phone") == phone and p.get("society_id", "sev2") == society_id:
-            raise HTTPException(status_code=400, detail=f"Phone is already registered in {society_id.upper()} (pending approval).")
+        if u.get("phone") == phone:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Phone is already registered ({u.get('flat')} - {u.get('name')}). Please login."
+            )
 
+    # Check if phone already exists in pending
+    for p in pending:
+        if p.get("phone") == phone:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Phone is already registered (pending approval for {p.get('flat')}). Please wait for admin or login."
+            )
+
+    # Optional: Check flat already taken (unique flat per society)
     for u in users:
         if u.get("flat") == flat and u.get("society_id", "sev2") == society_id:
-            raise HTTPException(status_code=400, detail=f"Flat {flat} is already registered.")
+            raise HTTPException(status_code=400, detail=f"Flat {flat} is already registered by {u.get('name')}")
+
     for p in pending:
         if p.get("flat") == flat and p.get("society_id", "sev2") == society_id:
-            raise HTTPException(status_code=400, detail=f"Flat {flat} is already pending approval.")
+            raise HTTPException(status_code=400, detail=f"Flat {flat} is already pending approval")
 
+    # Add to pending
     new_entry = {
         "society_id": society_id,
         "flat": flat,
         "name": name,
         "phone": phone,
-        "status": "pending",
-        "created_at": datetime.now().isoformat()
+        "status": "pending"
     }
     pending.append(new_entry)
     save_json(PENDING_FILE, pending)
+
     return {"message": f"Registration request for {flat} submitted. Waiting for admin approval.", "flat": flat}
 
 @router.get("/pending")
 async def get_pending():
     pending = load_json(PENDING_FILE)
-    return {"pending": pending, "count": len(pending)}
+    return {"pending": pending}
 
 @router.get("/users")
 async def get_users():
     users = load_json(USERS_FILE)
-    return {"users": users, "count": len(users)}
+    return {"users": users}
 
 @router.post("/approve")
 async def approve(payload: dict):
     phone = payload.get("phone", "").strip()
     if not phone:
         raise HTTPException(status_code=400, detail="Phone is required")
+
     pending = load_json(PENDING_FILE)
     users = load_json(USERS_FILE)
+
     found = None
     remaining = []
     for p in pending:
@@ -97,56 +113,14 @@ async def approve(payload: dict):
             found = p
         else:
             remaining.append(p)
+
     if not found:
         raise HTTPException(status_code=404, detail=f"No pending request found for phone {phone}")
+
+    # Move to users
     found["status"] = "approved"
-    found["approved_at"] = datetime.now().isoformat()
     users.append(found)
     save_json(USERS_FILE, users)
     save_json(PENDING_FILE, remaining)
-    return {"message": f"Approved {found.get('flat')} - {found.get('name')}", "user": found}
 
-@router.post("/reject")
-async def reject(payload: dict):
-    phone = payload.get("phone", "").strip()
-    if not phone:
-        raise HTTPException(status_code=400, detail="Phone is required")
-    pending = load_json(PENDING_FILE)
-    found = None
-    remaining = []
-    for p in pending:
-        if p.get("phone") == phone:
-            found = p
-        else:
-            remaining.append(p)
-    if not found:
-        raise HTTPException(status_code=404, detail=f"No pending request found for phone {phone}")
-    save_json(PENDING_FILE, remaining)
-    return {"message": f"Rejected {found.get('flat')} - {found.get('name')}", "rejected": found}
-
-@router.post("/bulk-approve")
-async def bulk_approve():
-    pending = load_json(PENDING_FILE)
-    users = load_json(USERS_FILE)
-    if not pending:
-        return {"message": "No pending requests", "approved_count": 0}
-    for p in pending:
-        p["status"] = "approved"
-        p["approved_at"] = datetime.now().isoformat()
-        users.append(p)
-    count = len(pending)
-    save_json(USERS_FILE, users)
-    save_json(PENDING_FILE, [])
-    return {"message": f"Approved all {count} pending users", "approved_count": count}
-
-@router.get("/stats")
-async def stats():
-    users = load_json(USERS_FILE)
-    pending = load_json(PENDING_FILE)
-    return {
-        "total_users": len(users),
-        "pending_count": len(pending),
-        "data_dir": str(DATA_DIR),
-        "users_file": str(USERS_FILE),
-        "pending_file": str(PENDING_FILE)
-    }
+    return {"message": f"Approved {found.get('name')} - {found.get('flat')}", "user": found}

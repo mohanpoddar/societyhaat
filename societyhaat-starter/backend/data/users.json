@@ -1,9 +1,10 @@
 [
   {
     "society_id": "sev2",
-    "flat": "Tower 4 - 1202",
-    "name": "Sunita Aunty",
-    "phone": "9811111111",
-    "status": "verified"
+    "flat": "B16 - 001",
+    "name": "Mohan Poddar01",
+    "phone": "9560779666",
+    "status": "approved",
+    "approved_at": "2026-09-29T01:15:20.536463"
   }
 ]
