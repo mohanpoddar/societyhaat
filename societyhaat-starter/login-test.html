@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Login Test</title></head>
+<body style="font-family:system-ui;max-width:400px;margin:20px auto;padding:20px">
+<h2>🔐 Login Test - Society Haat</h2>
+<p>Backend: <span id="backend"></span></p>
+<input id="phone" placeholder="Phone 10 digit" value="9560779666" style="width:100%;padding:10px;margin:10px 0">
+<select id="soc" style="width:100%;padding:10px"><option value="sev2">SEV2</option><option value="apcpth">APCPTH</option><option value="alp">ALP</option></select>
+<button onclick="testLogin()" style="width:100%;padding:12px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:700">Test Login</button>
+<div id="msg" style="margin-top:12px;font-size:12px;white-space:pre-wrap"></div>
+<script>
+const apiBase = window.location.origin;
+document.getElementById('backend').textContent = apiBase;
+async function testLogin(){
+  const phone = document.getElementById('phone').value.trim();
+  const soc = document.getElementById('soc').value;
+  const msg = document.getElementById('msg');
+  msg.textContent = 'Trying '+apiBase+'/api/auth/login...';
+  try{
+    const res = await fetch(apiBase+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone, society_id: soc})});
+    const data = await res.json();
+    msg.textContent = 'Status: '+res.status+'\n'+JSON.stringify(data,null,2);
+    if(res.ok) msg.textContent += '\n\n✅ LOGIN WORKS! Backend data OK';
+  }catch(e){
+    msg.textContent = '❌ Error: '+e.message+'\n\nCheck:\n1. Backend running? python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload\n2. Firewall allowed?\n3. Try http://localhost:8000/api/health';
+  }
+}
+// Auto check health
+fetch(apiBase+'/api/health').then(r=>r.json()).then(d=>{document.getElementById('msg').textContent='Health: '+JSON.stringify(d)+'\nBackend OK, now test login'}).catch(e=>{document.getElementById('msg').textContent='Health check failed: '+e.message});
+</script>
+</body></html>

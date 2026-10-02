@@ -5,8 +5,8 @@
     "name": "Mohan Poddar",
     "phone": "9560779666",
     "status": "approved",
-    "created_at": "2026-10-02T10:15:02.263342",
-    "approved_at": "2026-10-02T10:15:02.263342",
+    "created_at": "2026-10-02T23:55:35.381482",
+    "approved_at": "2026-10-02T23:55:35.381482",
     "cars": [
       {
         "id": "Maruti_WagonR_9560779666",
@@ -17,7 +17,7 @@
         "color": "White",
         "number": "8060",
         "ac": true,
-        "created_at": "2026-10-02T10:15:02.263342"
+        "created_at": "2026-10-02T23:55:35.381482"
       }
     ]
   },
@@ -27,8 +27,8 @@
     "name": "Piyush Poddar",
     "phone": "9625561517",
     "status": "approved",
-    "created_at": "2026-10-02T10:15:02.263342",
-    "approved_at": "2026-10-02T10:15:02.263342",
+    "created_at": "2026-10-02T23:55:35.381482",
+    "approved_at": "2026-10-02T23:55:35.381482",
     "cars": []
   },
   {
@@ -37,17 +37,8 @@
     "name": "Test User",
     "phone": "9999999999",
     "status": "approved",
-    "created_at": "2026-10-02T10:15:02.263342",
-    "approved_at": "2026-10-02T10:15:02.263342",
+    "created_at": "2026-10-02T23:55:35.381482",
+    "approved_at": "2026-10-02T23:55:35.381482",
     "cars": []
-  },
-  {
-    "society_id": "sev2",
-    "flat": "C3 - 102",
-    "name": "Abhilasha Poddar",
-    "phone": "9910816157",
-    "status": "approved",
-    "created_at": "2026-10-02T10:44:35.845961",
-    "approved_at": "2026-10-02T10:45:04.917586"
   }
 ]
