@@ -116,6 +116,21 @@ textarea{resize:vertical;min-height:60px}
 </div>
 </div>
 
+
+<div class="modal-bg" id="tripDoneModal" style="z-index:70;align-items:center;display:none">
+<div class="modal" style="border-radius:16px;max-width:420px;margin:16px;max-height:85vh;overflow-y:auto">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<h3 style="font-size:14px">✅ Mark Trip as Completed</h3>
+<button onclick="closeTripDoneModal()" style="background:#f1f5f9;border:none;border-radius:50%;width:28px;height:28px;font-size:14px">✕</button>
+</div>
+<div id="tripDoneContent" style="font-size:11px"></div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<button onclick="closeTripDoneModal()" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:10px;font-weight:700">Cancel</button>
+<button onclick="confirmTripDone()" style="flex:1;padding:10px;background:#16a34a;color:white;border:none;border-radius:10px;font-weight:700">✅ Confirm Completed</button>
+</div>
+</div>
+</div>
+
 <div class="modal-bg" id="carModal" style="z-index:65;align-items:center;display:none">
 <div class="modal" style="border-radius:16px;max-width:380px;margin:16px">
 <div style="display:flex;justify-content:space-between;align-items:center">
@@ -868,6 +883,30 @@ async function loadSeva(){
      }
      carInfo += '</div>';
     }
+    // For completed rides, show completed and no-show with names
+    const completedTravelledBookings = bookings.filter(b=>b.status==='completed_travelled' || b.status==='passenger_confirmed');
+    const noShowBookingsList = bookings.filter(b=>b.status==='no_show');
+    
+    if(p.status==='completed'){
+      if(completedTravelledBookings.length>0){
+        carInfo += '<div style="margin-top:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px"><p style="font-size:8px;font-weight:700;color:#166534">✅ '+completedTravelledBookings.length+' Travelled (completed):</p>';
+        completedTravelledBookings.forEach(b=>{
+          carInfo += '<div style="display:flex;justify-content:space-between;align-items:center;background:white;border:1px solid #bbf7d0;border-radius:6px;padding:4px 6px;margin-top:4px"><span style="font-size:8px"><b>'+b.name+' • '+b.flat+'</b> • 💺 '+b.seats_booked+' • 📱 '+b.phone+'</span><span style="font-size:7px;background:#dcfce7;padding:2px 6px;border-radius:10px">Travelled ✅</span></div>';
+        });
+        carInfo += '</div>';
+      }
+      if(noShowBookingsList.length>0){
+        carInfo += '<div style="margin-top:6px;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:6px"><p style="font-size:8px;font-weight:700;color:#991b1b">⚪ '+noShowBookingsList.length+' No-Show (did NOT travel):</p>';
+        noShowBookingsList.forEach(b=>{
+          carInfo += '<div style="display:flex;justify-content:space-between;align-items:center;background:white;border:1px solid #fecaca;border-radius:6px;padding:4px 6px;margin-top:4px"><span style="font-size:8px"><b>'+b.name+' • '+b.flat+'</b> • 💺 '+b.seats_booked+' • 📱 '+b.phone+'</span><span style="font-size:7px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">No-Show ⚪</span></div>';
+        });
+        carInfo += '</div>';
+      }
+      if(completedTravelledBookings.length===0 && noShowBookingsList.length===0){
+        carInfo += '<div style="margin-top:6px;background:#f1f5f9;border:1px dashed #e2e8f0;border-radius:8px;padding:6px"><p style="font-size:8px;color:#64748b">✅ Completed trip • '+(p.completed_count||0)+' travelled, '+(p.no_show_count||0)+' no-show • '+(p.completed_notes||'')+'</p></div>';
+      }
+    }
+    
     if(confirmedBookings.length){
      carInfo += '<div style="margin-top:6px;background:#f0fdf4;border:1px dashed #bbf7d0;border-radius:8px;padding:6px"><p style="font-size:8px;font-weight:700;color:#166534">✅ '+confirmedBookings.length+' Confirmed: '+confirmedBookings.map(b=>b.name+'('+b.seats_booked+')').join(', ')+'</p>';
      if(isOwner){
@@ -935,17 +974,25 @@ async function loadSeva(){
      const currentSeats = myConfBooking ? myConfBooking.seats_booked : 1;
      const canAddMore = seatsLeft > 0 && myConfBooking && myConfBooking.status==='confirmed';
      const myStatus = myConfBooking ? myConfBooking.status : '';
-     if(myStatus==='completed_travelled'){
-       actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700">✅ Trip completed by owner • Please confirm & rate</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button onclick="confirmTravel(\''+p.id+'\',\''+confId+'\')" style="font-size:9px;background:#16a34a;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">✅ Confirm I Travelled</button><button onclick="rateRide(\''+p.id+'\',\''+p.phone+'\',\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">⭐ Rate '+p.name.split(' ')[0]+'</button></div></div>';
-     } else if(myStatus==='passenger_confirmed'){
-       actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700">✅ You confirmed travel • Trip done 🙏</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button onclick="rateRide(\''+p.id+'\',\''+p.phone+'\',\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">⭐ Rate '+p.name.split(' ')[0]+'</button></div></div>';
+     if(myStatus==='completed_travelled' || myStatus==='passenger_confirmed'){
+       // By default all travelled - simple as per request
+       actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700">✅ Travelled (default all travelled) • By owner: '+(p.completed_notes||'Trip completed')+'</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button onclick="rateRide(\''+p.id+'\',\''+p.phone+'\',\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">⭐ Rate '+p.name.split(' ')[0]+'</button><button onclick="reportNotTravel(\''+p.id+'\',\''+confId+'\')" style="font-size:8px;background:white;color:#991b1b;border:1px solid #fecaca;padding:5px 8px;border-radius:20px;font-weight:700">⚪ Report: I did NOT travel</button></div></div>';
      } else if(myStatus==='no_show'){
-       actionBtn = '<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">⚪ Marked as No-Show by owner</span>';
+       actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">⚪ Marked as No-Show by owner</span><div style="display:flex;gap:4px"><button onclick="rateRide(\''+p.id+'\',\''+p.phone+'\',\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:8px;background:#f59e0b;color:white;padding:4px 8px;border-radius:20px;border:none;font-weight:700">⭐ Rate</button><button onclick="confirmTravel(\''+p.id+'\',\''+confId+'\')" style="font-size:7px;background:#f1f5f9;padding:3px 6px;border-radius:10px;border:1px solid #e2e8f0">Was actually travelled?</button></div></div>';
+     } else if(myStatus==='passenger_reported_no_travel'){
+       actionBtn = '<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:6px 10px;border-radius:20px;font-weight:700">⚪ You reported: Did NOT travel • Under review</span>';
      } else if(myStatus==='expired'){
        actionBtn = '<span style="font-size:9px;background:#f1f5f9;color:#64748b;padding:6px 10px;border-radius:20px;font-weight:700">⚫ Expired • Ride time passed</span>';
      } else {
-       // confirmed
-       actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700;border:1px solid #bbf7d0">📱 Seva Saathi: '+p.phone+' • You: '+currentSeats+' seat(s) • '+seatsLeft+' left</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><a href="tel:+91'+p.phone+'" style="font-size:9px;background:#16a34a;color:white;padding:6px 10px;border-radius:20px;text-decoration:none;font-weight:700">📞 Call</a><button onclick="openWhatsAppContact(\''+p.id+'\', true)" style="font-size:9px;background:#25D366;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">WhatsApp ✓</button>'+(canAddMore?'<button onclick="bookMoreSeats(\''+p.id+'\', '+seatsLeft+', '+currentSeats+')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">+ Add Seat ('+seatsLeft+' left)</button>':'')+'<button onclick="confirmTravel(\''+p.id+'\',\''+confId+'\')" style="font-size:9px;background:#3b82f6;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">✅ I Travelled - Confirm</button><button onclick="cancelMyBooking(\''+p.id+'\',\''+confId+'\')" style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;border:none;font-weight:700">Cancel ❌</button></div></div>';
+       // confirmed - before trip completion
+       const rideTimePassedForPax = (()=>{ try{ const rd = new Date(p.date+' '+p.time); return !isNaN(rd) && new Date() > rd; }catch(e){ return p.status==='completed'; } })();
+       const isRideCompleted = p.status==='completed';
+       if(isRideCompleted || rideTimePassedForPax){
+         // After trip time OR ride marked completed by owner, default all travelled - show Report link
+         actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700">✅ Travelled (default all travelled) • '+(p.completed_notes||'Trip completed by owner')+' • After trip</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button onclick="rateRide(\''+p.id+'\',\''+p.phone+'\',\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">⭐ Rate '+p.name.split(' ')[0]+'</button><button onclick="reportNotTravel(\''+p.id+'\',\''+confId+'\')" style="font-size:8px;background:white;color:#991b1b;border:1px solid #fecaca;padding:5px 8px;border-radius:20px;font-weight:700">⚪ Report: I did NOT travel</button></div></div>';
+       } else {
+         actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700;border:1px solid #bbf7d0">📱 Seva Saathi: '+p.phone+' • You: '+currentSeats+' seat(s) • '+seatsLeft+' left • Default all travelled after trip</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><a href="tel:+91'+p.phone+'" style="font-size:9px;background:#16a34a;color:white;padding:6px 10px;border-radius:20px;text-decoration:none;font-weight:700">📞 Call</a><button onclick="openWhatsAppContact(\''+p.id+'\', true)" style="font-size:9px;background:#25D366;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">WhatsApp ✓</button>'+(canAddMore?'<button onclick="bookMoreSeats(\''+p.id+'\', '+seatsLeft+', '+currentSeats+')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">+ Add Seat ('+seatsLeft+' left)</button>':'')+'<button onclick="cancelMyBooking(\''+p.id+'\',\''+confId+'\')" style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;border:none;font-weight:700">Cancel ❌</button></div></div>';
+       }
      }
 
     } else if(hasPending){
@@ -1060,6 +1107,8 @@ async function editSevaPost(postId){
 
 // === RIDE COMPLETION WORKFLOW - Trip Done, Confirm Travel, Rating ===
 
+let currentTripDonePostId = null;
+
 async function markTripDone(postId){
   const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
   if(!verified.phone){ alert('Login first'); return; }
@@ -1070,46 +1119,109 @@ async function markTripDone(postId){
     const post = (dataList.posts||[]).find(p=>p.id===postId);
     if(!post){ alert('Ride not found'); return; }
     
-    const confirmed = (post.bookings||[]).filter(b=>b.status==='confirmed');
-    const passengerList = confirmed.map(b=> b.name + ' ('+b.flat+') - '+b.seats_booked+' seat(s)').join('\n');
+    currentTripDonePostId = postId;
     
-    let msg = '✅ Mark this trip as COMPLETED?\n\n';
-    msg += 'From: '+post.from_source+' → '+post.to_destination+'\n';
-    msg += 'Date: '+post.date+' '+post.time+'\n';
-    msg += 'Confirmed: '+confirmed.length+' passenger(s)\n';
-    if(passengerList) msg += '\n' + passengerList + '\n';
-    msg += '\nSelect who did NOT show up (no-show):';
+    const confirmed = (post.bookings||[]).filter(b=>['confirmed','passenger_confirmed'].includes(b.status));
+    const pending = (post.bookings||[]).filter(b=>b.status==='pending');
     
-    let noShowIds = [];
-    if(confirmed.length>0){
-      // Show checklist for no-shows
-      let noShowPrompt = 'Did all passengers travel?\n\n';
-      noShowPrompt += 'Enter numbers of passengers who were NO-SHOW (comma separated), or leave empty if all travelled:\n';
-      confirmed.forEach((b,i)=>{
-        noShowPrompt += (i+1)+'. '+b.name+' ('+b.flat+') - '+b.seats_booked+' seat(s)\n';
-      });
-      noShowPrompt += '\nExample: 2 or 1,3 or empty for all travelled';
+    let content = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:10px">';
+    content += '<b style="font-size:12px">'+(post.from_source||'')+' → '+(post.to_destination||'')+'</b><br>';
+    content += '<span style="font-size:9px;color:#64748b">📅 '+post.date+' 🕒 '+post.time+' • Rs '+(post.price||'Free')+' • '+post.seats+'</span>';
+    content += '</div>';
+    
+    if(confirmed.length===0 && pending.length===0){
+      content += '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-bottom:10px">';
+      content += '<p style="font-size:11px;font-weight:700">⚠️ No passengers booked</p>';
+      content += '<p style="font-size:9px;color:#92400e;margin-top:4px">This ride shows '+ (post.seats_left!==undefined? post.seats_left+' left' : '0 confirmed') +' but no confirmed bookings found.<br>• If ride was marked Full manually, it had no passengers<br>• You can still mark as completed as empty trip<br>• Or Delete Ride if not needed</p>';
+      content += '</div>';
+      content += '<label style="font-size:10px;font-weight:700">Completion notes: <span style="color:red">*required</span></label><textarea id="tripDoneNotes" required style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid #e2e8f0;font-size:10px" placeholder="How was trip? e.g. Smooth ride, all travelled safely">Trip completed - empty ride, no passengers</textarea><p style="font-size:7px;color:#64748b;margin-top:2px">Mohan, please add your comment - required</p>';
+      content += '<div id="tripDoneNoShowList" style="display:none"></div>';
+    } else {
+      content += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;margin-bottom:10px">';
+      content += '<p style="font-size:11px;font-weight:700">👥 Confirmed Passengers ('+confirmed.length+')</p>';
+      content += '<p style="font-size:8px;color:#166534;margin-top:2px">Tick who did NOT show up (no-show). Unchecked = travelled.</p>';
+      content += '</div>';
       
-      const noShowInput = prompt(noShowPrompt, '');
-      if(noShowInput===null) return; // Cancelled
-      if(noShowInput.trim()){
-        const indices = noShowInput.split(',').map(s=>parseInt(s.trim())-1).filter(i=>!isNaN(i) && i>=0 && i<confirmed.length);
-        noShowIds = indices.map(i=>confirmed[i].id);
+      content += '<div id="tripDoneNoShowList">';
+      confirmed.forEach((b,i)=>{
+        content += '<label style="display:flex;align-items:center;gap:8px;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:8px;margin-bottom:6px;cursor:pointer">';
+        content += '<input type="checkbox" id="noShow_'+b.id+'" value="'+b.id+'" style="width:16px;height:16px">';
+        content += '<div style="flex:1"><b style="font-size:10px">'+b.name+' • '+b.flat+'</b><br><span style="font-size:8px;color:#64748b">📱 '+b.phone+' • 💺 '+b.seats_booked+' seat(s) • Booked: '+new Date(b.created_at).toLocaleString()+'</span><br><span style="font-size:7px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">If ticked → No-Show: '+b.name+' did NOT travel</span></div>';
+        content += '</label>';
+      });
+      content += '</div>';
+      
+      if(pending.length>0){
+        content += '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px;margin-top:8px"><p style="font-size:9px;font-weight:700">⏳ Pending ('+pending.length+') - not counted as travelled</p><p style="font-size:8px;color:#92400e">'+pending.map(b=>b.name+' ('+b.flat+')').join(', ')+'</p></div>';
       }
+      
+      content += '<div style="margin-top:10px"><label style="font-size:10px;font-weight:700">Mohan Comment: <span style="color:red">*required</span></label><textarea id="tripDoneNotes" required style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid #f59e0b;font-size:10px" placeholder="How was trip? e.g. All travelled safely, reached on time, good company 🙏">Trip completed - thanks all 🙏 All travelled safely</textarea><p style="font-size:7px;color:#92400e;margin-top:2px">*Required - your comment will be shown to all travellers</p></div>';
     }
     
-    const notes = prompt('Add completion notes (optional):', 'Trip completed - thanks all 🙏');
-    if(notes===null) return;
-    
-    if(!confirm(msg + '\n\nNo-show: '+(noShowIds.length? noShowIds.length+' passenger(s)' : 'None - all travelled')+'\n\nConfirm trip completion? This will notify all passengers via WhatsApp to rate.')) return;
-    
-    const res = await fetch(apiBase+'/api/seva/ride/mark-completed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post_id: postId, owner_phone: verified.phone, no_show_ids: noShowIds, notes: notes})});
+    document.getElementById('tripDoneContent').innerHTML = content;
+    document.getElementById('tripDoneModal').style.display = 'flex';
+    document.getElementById('tripDoneModal').classList.add('show');
+  }catch(e){
+    alert('❌ '+e.message);
+  }
+}
+
+function closeTripDoneModal(){
+  document.getElementById('tripDoneModal').style.display='none';
+  document.getElementById('tripDoneModal').classList.remove('show');
+  currentTripDonePostId = null;
+}
+
+async function confirmTripDone(){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!currentTripDonePostId){ alert('No ride selected'); return; }
+  
+  // Collect no-show ids from checkboxes
+  const noShowIds = [];
+  const checkboxes = document.querySelectorAll('#tripDoneNoShowList input[type="checkbox"]:checked');
+  checkboxes.forEach(cb=>{ noShowIds.push(cb.value); });
+  
+  const notesEl = document.getElementById('tripDoneNotes');
+  let notes = notesEl ? notesEl.value.trim() : '';
+  if(!notes){
+    alert('⚠️ Mohan, please add your comment - required\n\nHow was trip? e.g. All travelled safely');
+    if(notesEl) notesEl.focus();
+    return;
+  }
+  if(notes.length < 5){
+    alert('⚠️ Comment too short - please add more details (min 5 chars)');
+    if(notesEl) notesEl.focus();
+    return;
+  }
+  
+  // Show summary
+  const travelledCount = document.querySelectorAll('#tripDoneNoShowList input[type="checkbox"]').length - noShowIds.length;
+  const noShowCount = noShowIds.length;
+  
+  let summary = 'Confirm trip completion?\n\n';
+  summary += 'Travelled: '+travelledCount+'\n';
+  summary += 'No-show: '+noShowCount+'\n';
+  if(noShowIds.length>0){
+    const noShowNames = [];
+    checkboxes.forEach(cb=>{
+      const label = cb.closest('label');
+      const nameEl = label ? label.querySelector('b') : null;
+      if(nameEl) noShowNames.push(nameEl.textContent);
+    });
+    summary += '\nNo-show names:\n' + noShowNames.join('\n');
+  }
+  summary += '\n\nThis will notify travelled passengers via WhatsApp to rate.';
+  
+  if(!confirm(summary)) return;
+  
+  try{
+    const res = await fetch(apiBase+'/api/seva/ride/mark-completed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post_id: currentTripDonePostId, owner_phone: verified.phone, no_show_ids: noShowIds, notes: notes})});
     const data = await res.json();
     if(!res.ok) throw new Error(data.detail);
     
-    alert('✅ '+data.message+'\n\nTrip marked as completed! WhatsApp will open for each travelled passenger to ask for rating.');
+    closeTripDoneModal();
+    alert('✅ '+data.message+'\n\nTrip marked as completed!\n\nTravelled: '+(data.completed_count||0)+'\nNo-show: '+(data.no_show_count||0)+'\n\nWhatsApp will open for travelled passengers to ask for rating.');
     
-    // Open WhatsApp for each
     const list = data.whatsapp_list || [];
     for(let i=0;i<list.length;i++){
       const item = list[i];
@@ -1124,20 +1236,34 @@ async function markTripDone(postId){
   }
 }
 
+
 async function confirmTravel(postId, bookingId){
+  // Legacy - now auto considered travelled, redirect to rating
+  alert('✅ By default all are considered travelled. No need to confirm travel.\n\nYou can rate your Seva Saathi or report if you did NOT travel.');
+  return;
+}
+
+async function reportNotTravel(postId, bookingId){
   const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
   if(!verified.phone){ alert('Login first'); return; }
-  if(!confirm('✅ Confirm you travelled on this ride?\n\nThis will mark your booking as travel confirmed and allow rating.')) return;
+  const reason = prompt('⚪ Report: I did NOT travel\n\nYou were marked as travelled but you did NOT travel on this ride.\n\nPlease tell reason (required):\n- Owner marked wrong\n- I missed ride\n- Ride cancelled but still marked\n\nEnter reason:', '');
+  if(reason===null) return;
+  if(!reason.trim() || reason.trim().length<5){
+    alert('Please enter reason (min 5 chars) - required');
+    return;
+  }
+  if(!confirm('Confirm report:\n\nYou are reporting you did NOT travel on this ride.\nReason: '+reason+'\n\nThis will notify owner ('+postId+') and mark as disputed. Continue?')) return;
   try{
-    const res = await fetch(apiBase+'/api/seva/booking/confirm-travel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id: bookingId, post_id: postId, phone: verified.phone})});
+    const res = await fetch(apiBase+'/api/seva/booking/report-no-travel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id: bookingId, post_id: postId, phone: verified.phone, reason: reason})});
     const data = await res.json();
     if(!res.ok) throw new Error(data.detail);
-    alert('✅ '+data.message);
+    alert('✅ Reported: You did NOT travel\n\nReason saved. Owner will be notified. Status: '+data.booking.status);
     loadSeva();
   }catch(e){
     alert('❌ '+e.message);
   }
 }
+
 
 async function rateRide(postId, ratedPhone, ratedName){
   const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');

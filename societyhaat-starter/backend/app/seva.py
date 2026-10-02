@@ -843,13 +843,15 @@ async def update_seva(payload: dict):
 
 @router.post("/ride/mark-completed")
 async def mark_ride_completed(payload: dict):
-    """Mohan marks trip as done after travel - with no-show handling"""
+    """Mohan marks trip as done after travel - with no-show handling - comment required"""
     post_id = payload.get("post_id","").strip() or payload.get("id","").strip()
     owner_phone = payload.get("owner_phone","").strip() or payload.get("phone","").strip()
     no_show_ids = payload.get("no_show_ids", [])  # list of booking ids who didn't show
-    notes = payload.get("notes","").strip() or "Trip completed"
+    notes = payload.get("notes","").strip()
     if not post_id or not owner_phone:
         raise HTTPException(status_code=400, detail="post_id and owner_phone required")
+    if not notes or len(notes.strip())<5:
+        raise HTTPException(status_code=400, detail="Mohan's comment required - min 5 chars: how was trip? e.g. All travelled safely")
     posts = load_seva()
     bookings = load_bookings()
     post = None
@@ -992,6 +994,78 @@ async def confirm_travel(payload: dict):
         save_seva(posts)
     
     return {"message": "Travel confirmed - thanks! Please rate your Seva Saathi", "booking": booking, "post": post}
+
+
+@router.post("/booking/report-no-travel")
+async def report_no_travel(payload: dict):
+    """Traveler reports: I did NOT travel - by default all travelled, this is exception"""
+    booking_id = payload.get("booking_id","").strip()
+    post_id = payload.get("post_id","").strip()
+    phone = payload.get("phone","").strip()
+    reason = payload.get("reason","").strip() or "Reported did not travel"
+    if not phone:
+        raise HTTPException(status_code=400, detail="phone required")
+    if not booking_id and not post_id:
+        raise HTTPException(status_code=400, detail="booking_id or post_id required")
+    
+    posts = load_seva()
+    bookings = load_bookings()
+    
+    booking = None
+    booking_idx = -1
+    if booking_id:
+        for i,b in enumerate(bookings):
+            if b.get('id')==booking_id:
+                booking=b
+                booking_idx=i
+                break
+    elif post_id:
+        for i,b in enumerate(bookings):
+            if b.get('post_id')==post_id and b.get('phone')==phone and b.get('status') in ('completed_travelled','passenger_confirmed','confirmed'):
+                booking=b
+                booking_idx=i
+                break
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found - only completed/confirmed bookings can report not travel")
+    if booking.get('phone')!=phone:
+        raise HTTPException(status_code=403, detail="Only booking owner can report")
+    if booking.get('status') not in ('completed_travelled','passenger_confirmed','confirmed'):
+        raise HTTPException(status_code=400, detail=f"Cannot report {booking.get('status')} booking as not travelled")
+    
+    # Mark as passenger reported no travel
+    booking['status']='passenger_reported_no_travel'
+    booking['passenger_reported_no_travel_at']= __import__('datetime').datetime.now().isoformat()
+    booking['passenger_no_travel_reason']=reason
+    booking['reported_by']='passenger'
+    
+    bookings[booking_idx]=booking
+    save_bookings(bookings)
+    
+    # Update post
+    post = None
+    post_idx = -1
+    for i,p in enumerate(posts):
+        if p.get('id')==booking.get('post_id'):
+            post=p
+            post_idx=i
+            break
+    if post:
+        for pb in post.get('bookings',[]):
+            if pb.get('id')==booking.get('id'):
+                pb['status']=booking['status']
+                pb['passenger_reported_no_travel_at']=booking['passenger_reported_no_travel_at']
+                pb['passenger_no_travel_reason']=reason
+                break
+        posts[post_idx]=post
+        save_seva(posts)
+    
+    # Notify owner via whatsapp text
+    wa_text = f"Hi {post.get('name')}, {booking.get('name')} ({booking.get('flat')}) reported: I did NOT travel on ride {post.get('from_source')} → {post.get('to_destination')} on {post.get('date')} {post.get('time')}. Reason: {reason}. Please check and update if needed. - Society Haat"
+    
+    return {"message": f"Reported: You did NOT travel - reason saved, owner notified", "booking": booking, "post": post, "whatsapp_text": wa_text, "whatsapp_owner": post.get('phone')}
+
+
 
 @router.post("/ride/rate")
 async def rate_ride(payload: dict):
