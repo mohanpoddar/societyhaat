@@ -103,9 +103,12 @@
     "seats_booked": 1,
     "price_per_seat": "",
     "total_price": "",
-    "status": "denied",
+    "status": "cancelled",
     "created_at": "2026-10-03T00:29:41.037156",
-    "denied_at": "2026-10-03T00:29:54.320271",
-    "deny_reason": "Seats not available / Different timing"
+    "reopened_at": "2026-10-03T01:15:54.783323",
+    "confirmed_at": "2026-10-03T01:16:18.497130",
+    "cancelled_at": "2026-10-03T01:22:07.430360",
+    "cancel_reason": "Sorry, my plan changed - cannot go. Apologies",
+    "cancelled_by": "owner"
   }
 ]

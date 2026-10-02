@@ -781,14 +781,20 @@ async function submitPost(){
   loadFeeds();
   alert('✅ Posted to '+society_id.toUpperCase()+' '+(postType==='haat'?'Haat':'Seva') + ' as ' + name + ' ' + flat);
  }catch(e){
-  // Fallback localStorage if backend offline
+  console.error('Post error:', e);
+  // If error has message from backend, show it
+  if(e.message && !e.message.includes('Failed to fetch') && !e.message.includes('NetworkError') && !e.message.includes('offline')){
+    alert('❌ Failed: '+e.message+'\n\nCheck: Title, Description, From, To, Date are filled. If still fails, check backend logs.');
+    return;
+  }
+  // Only fallback to local if truly offline (network error)
   const key = (postType==='haat'?'haat_':'seva_')+selectedSociety;
   const arr = JSON.parse(localStorage.getItem(key) || '[]');
   arr.push({...payload, id:Date.now().toString(), created_at:new Date().toISOString()});
   localStorage.setItem(key, JSON.stringify(arr));
   closePostModal();
   loadFeeds();
-  alert('⚠️ Backend offline, saved locally (will sync when online)');
+  alert('⚠️ Backend offline or unreachable at '+apiBase+'\nSaved locally.\nError: '+e.message+'\n\nMake sure backend is running: python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000');
  }
 }
 
