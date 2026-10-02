@@ -16,4 +16,9 @@ $ python -m http.server 5500 --bind 0.0.0.0
 
 
 
+http://192.168.10.50:8000/societyhaat-web.html
+
+http://192.168.10.50:8000/societyhaat-admin.html
+
+
 
