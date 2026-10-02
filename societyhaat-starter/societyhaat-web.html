@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlNvY2lldHkgSGFhdCAtIFNFVjIgQVBDUFRIIEFMUCIsCiAgInNob3J0X25hbWUiOiAiU29jaWV0eUhhYXQiLAogICJkZXNjcmlwdGlvbiI6ICJIYWF0ICsgU2V2YSAtIDEtMmttIEdyZWF0ZXIgTm9pZGEgV2VzdCAtIDMgU29jaWV0aWVzIiwKICAic3RhcnRfdXJsIjogIi9zb2NpZXR5aGFhdC13ZWIuaHRtbCIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiI2ZmZmZmZiIsCiAgInRoZW1lX2NvbG9yIjogIiMxNmEzNGEiLAogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImh0dHBzOi8vY2RuLmpzZGVsaXZyLm5ldC9naC90d2l0dGVyL3R3ZW1vamlAMTQuMC4yL2Fzc2V0cy83Mng3Mi8xZjNlMC5wbmciLAogICAgICAic2l6ZXMiOiAiNzJ4NzIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9LAogICAgewogICAgICAic3JjIjogImh0dHBzOi8vY2RuLmpzZGVsaXZyLm5ldC9naC90d2l0dGVyL3R3ZW1vamlAMTQuMC4yL2Fzc2V0cy83Mng3Mi8xZjNlMC5wbmciLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9jZG4uanNkZWxpdnIubmV0L2doL3R3aXR0ZXIvdHdlbW9qaUAxNC4wLjIvYXNzZXRzLzcyeDcyLzFmM2UwLnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfQogIF0KfQ==">
 <meta name="theme-color" content="#16a34a">
 <title>Society Haat - Haat + Seva</title>
 <style>
@@ -99,6 +99,51 @@ textarea{resize:vertical;min-height:60px}
 </div>
 </div>
 
+<div class="modal-bg" id="carModal" style="z-index:65;align-items:center;display:none">
+<div class="modal" style="border-radius:16px;max-width:380px;margin:16px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<h3 style="font-size:14px">Add Your Car - Like BlaBla</h3>
+<span onclick="closeCarModal()" style="font-size:18px;cursor:pointer">X</span>
+</div>
+<p style="font-size:9px;color:#64748b;margin-top:4px">Add once, auto-filled in every Car Pool post. BlaBlaCar style.</p>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-top:10px">
+<label>Car Make</label>
+<select id="carMake" onchange="onCarMakeChange()"><option>Maruti Suzuki</option><option>Hyundai</option><option>Tata</option><option>Honda</option><option>Mahindra</option><option>Toyota</option><option>Kia</option><option>Renault</option><option>Other</option></select>
+<input id="carMakeCustom" placeholder="Custom make" style="display:none;margin-top:4px">
+<label>Car Model</label>
+<input id="carModel" placeholder="e.g. WagonR, Swift, Baleno" list="modelList">
+<datalist id="modelList"><option value="WagonR"><option value="Swift"><option value="Baleno"><option value="Alto"><option value="Dzire"><option value="Ertiga"><option value="Brezza"><option value="Creta"><option value="i20"><option value="Nexon"><option value="Punch"></datalist>
+<div style="display:flex;gap:6px;margin-top:8px"><div style="flex:1"><label>Car Type</label><select id="carType"><option>Hatchback</option><option>Sedan</option><option>SUV</option><option>MUV / 7 Seater</option></select></div><div style="flex:1"><label>Seaters</label><select id="carSeats"><option>4 Seater</option><option selected>5 Seater</option><option>6 Seater</option><option>7 Seater</option></select></div></div>
+<div style="display:flex;gap:6px;margin-top:8px"><div style="flex:1"><label>Color</label><input id="carColor" placeholder="White/Silver"></div><div style="flex:1"><label>Number last 4</label><input id="carNumber" placeholder="8060" maxlength="4"></div></div>
+<div style="margin-top:8px"><label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" id="carAC" checked style="width:16px"> AC Available</label></div>
+<div id="carMsg" style="margin-top:8px"></div>
+<button onclick="saveCar()" id="saveCarBtn" style="width:100%;padding:11px;background:#16a34a;color:white;border:none;border-radius:10px;font-weight:700;margin-top:10px;cursor:pointer">Save Car Profile</button>
+<button onclick="closeCarModal()" style="width:100%;padding:10px;background:#f1f5f9;color:#334155;border:none;border-radius:10px;font-weight:700;margin-top:6px">Cancel</button>
+</div>
+<div id="existingCars" style="margin-top:10px"></div>
+</div>
+</div>
+
+<div class="modal-bg" id="bookingModal" style="z-index:66;align-items:center;display:none">
+<div class="modal" style="border-radius:16px;max-width:380px;margin:16px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<h3 style="font-size:14px">🚗 Book This Ride - BlaBla Style</h3>
+<span onclick="closeBookingModal()" style="font-size:18px;cursor:pointer">X</span>
+</div>
+<div id="bookingRideInfo" style="background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:10px;margin-top:10px"></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-top:10px">
+<label>How many seats you need?</label>
+<select id="bookingSeats"><option>1 seat</option><option>2 seats</option><option>3 seats</option></select>
+<div style="display:flex;gap:6px;margin-top:8px"><div style="flex:1"><label>Your Name (auto)</label><input id="bookingName" readonly style="background:#f1f5f9"></div><div style="flex:1"><label>Flat (auto)</label><input id="bookingFlat" readonly style="background:#f1f5f9"></div></div>
+<div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:8px;margin-top:8px"><p style="font-size:10px;font-weight:700">💰 Price: <span id="bookingPriceText">Rs 100 per seat</span></p><p style="font-size:9px;color:#64748b" id="bookingTotalText">Total: Rs 100</p></div>
+<div id="bookingMsg" style="margin-top:8px"></div>
+<button onclick="confirmBooking()" id="confirmBookingBtn" style="width:100%;padding:11px;background:#f59e0b;color:white;border:none;border-radius:10px;font-weight:700;margin-top:10px;cursor:pointer">Confirm Booking</button>
+<button onclick="closeBookingModal()" style="width:100%;padding:10px;background:#f1f5f9;color:#334155;border:none;border-radius:10px;font-weight:700;margin-top:6px">Cancel</button>
+<p style="font-size:8px;color:#64748b;text-align:center;margin-top:8px">After booking, WhatsApp contact will be shared with driver</p>
+</div>
+</div>
+</div>
+
 <div class="soc-grid">
 <div class="soc-card sev2 active" id="card-sev2" onclick="selectSociety('sev2')">
 <div style="display:flex;gap:5px"><span class="badge badge-white">SEV2</span><span class="badge" style="background:rgba(255,255,255,.25);color:white" id="sev2-count">-</span></div>
@@ -164,7 +209,9 @@ textarea{resize:vertical;min-height:60px}
 
 <!-- Car Pool BlaBla style - source destination separate -->
 <div id="carPoolFields" style="display:none;background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:10px;margin-top:10px">
-<p style="font-size:10px;font-weight:700;margin-bottom:6px">🚗 Car Pool / Share Auto — Like BlaBla, Ola</p>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><p style="font-size:10px;font-weight:700">🚗 Car Pool / Share Auto — Like BlaBla, Ola</p><button type="button" onclick="openCarModal()" style="font-size:8px;background:white;border:1px solid #e2e8f0;padding:3px 6px;border-radius:6px;cursor:pointer">🚗 My Cars</button></div>
+<div id="carAutoFillInfo" style="display:none;background:white;border:1px solid #bbf7d0;border-radius:8px;padding:8px;margin-bottom:8px"><p style="font-size:9px;color:#166534;font-weight:700">✓ Car auto-filled from profile:</p><p id="carAutoFillText" style="font-size:10px;margin-top:2px"></p></div>
+<div id="noCarWarning" style="display:none;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px;margin-bottom:8px;text-align:center"><p style="font-size:9px;color:#991b1b">⚠️ No car added yet. Add car first for BlaBla-style pool</p><button type="button" onclick="openCarModal()" style="margin-top:4px;padding:6px 10px;background:#16a34a;color:white;border:none;border-radius:6px;font-size:10px;font-weight:700">+ Add Car (Make, Type, Seats)</button></div>
 <div style="display:flex;gap:6px;align-items:center">
 <div style="flex:1">
 <label style="margin-top:0">From (Source)</label>
@@ -226,20 +273,100 @@ textarea{resize:vertical;min-height:60px}
 </div>
 
 <script>
-const apiBase = (() => {
+
+const getApiBase = () => {
   const h = window.location.hostname;
-  if(h === '192.168.10.50' || h === 'localhost' || h === '127.0.0.1') return `http://${h}:8000`;
-  if(window.location.port === '8000') return window.location.origin;
-  return 'http://192.168.10.50:8000';
-})();
+  const port = window.location.port;
+  const proto = window.location.protocol;
+  
+  // 1. If served from backend itself (port 8000) -> SAME ORIGIN always wins (no CORS issues)
+  if(port === '8000') return window.location.origin;
+  
+  // 2. If file:// or no port (Live Server 5500, etc) -> try same host on 8000
+  // This fixes incognito where customBackend is empty
+  if(h && h !== 'localhost' && h !== '127.0.0.1' && h !== ''){
+    // Same host but port 8000 - most reliable for LAN
+    return `${proto}//${h}:8000`;
+  }
+  
+  // 3. Check manually saved backend (only if not on 8000)
+  const custom = localStorage.getItem('customBackend');
+  if(custom && port !== '8000') {
+    // Validate custom isn't stale - if it contains 192.168.10.50 but current host is different, ignore
+    try{
+      const customHost = new URL(custom).hostname;
+      if(customHost === h || h === 'localhost' || h === '127.0.0.1' || customHost === 'localhost') return custom;
+      // If custom host != current host and we're on LAN, prefer current host
+      if(h.startsWith('192.168.') || h.startsWith('10.') || h.startsWith('172.')){
+        return `${proto}//${h}:8000`;
+      }
+      return custom;
+    }catch(e){ return custom; }
+  }
+  
+  // 4. Fallback
+  return 'http://localhost:8000';
+};
+
+let apiBase = getApiBase();
+
+// Try multiple backends if first fails - window.location.origin FIRST for incognito
+const BACKEND_CANDIDATES = [
+  window.location.origin, // Same origin always first - fixes incognito
+  apiBase,
+  `http://${window.location.hostname}:8000`,
+  'http://localhost:8000',
+  'http://127.0.0.1:8000',
+  'http://192.168.10.50:8000'
+].filter((v,i,a)=>v && v.startsWith('http') && a.indexOf(v)===i);
+
+async function findWorkingBackend(){
+  for(let url of BACKEND_CANDIDATES){
+    try{
+      const r = await fetch(url+'/api/health', {method:'GET', signal: AbortSignal.timeout(1500)});
+      if(r.ok){
+        apiBase = url;
+        localStorage.setItem('customBackend', url);
+        console.log('Working backend found:', url);
+        return url;
+      }
+    }catch(e){ console.log('Backend failed:', url); }
+  }
+  return null;
+}
+
+// apiBase already defined above - reusing
+
 
 let selectedSociety = localStorage.getItem('society') || 'sev2';
 let currentTab = localStorage.getItem('tab') || 'haat';
 let postType = 'haat';
 
 // Init
-async function check(){try{const r=await fetch(apiBase+'/api/health');document.getElementById('status').textContent=r.ok?'connected ✅':'offline'}catch(e){document.getElementById('status').textContent='offline (local only)'}}
-check();
+async function check(){
+  const el = document.getElementById('status');
+  el.textContent='checking...';
+  const working = await findWorkingBackend();
+  if(working){
+    apiBase = working;
+    el.textContent='connected ✅ '+working.replace('http://','');
+    el.style.background='#dcfce7';
+  } else {
+    el.textContent='offline (local only) — tap to set IP';
+    el.style.background='#fee2e2';
+    el.style.cursor='pointer';
+    el.onclick = () => {
+      const ip = prompt('Enter backend IP', localStorage.getItem('customBackend') || '192.168.10.50:8000');
+      if(ip){
+        const url = ip.startsWith('http') ? ip : 'http://'+ip;
+        localStorage.setItem('customBackend', url);
+        apiBase = url;
+        check(); setInterval(check, 5000);
+      }
+    };
+  }
+}
+check(); setInterval(check, 5000);
 
 function selectSociety(soc){
   selectedSociety = soc;
@@ -341,10 +468,12 @@ function onSevaTypeChange(){
   const t = document.getElementById('sevaType').value;
   const showCar = (t==='Car Pool' || t==='Share Auto');
   document.getElementById('carPoolFields').style.display = showCar ? 'block' : 'none';
-  // Auto set today's date for car pool
-  if(showCar && !document.getElementById('sevaDate').value){
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('sevaDate').value = today;
+  if(showCar){
+    if(typeof updateCarAutoFill==='function') updateCarAutoFill();
+    if(!document.getElementById('sevaDate').value){
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('sevaDate').value = today;
+    }
   }
 }
 // Custom source/destination toggles
@@ -414,6 +543,7 @@ async function loadHaat(){
   }
 }
 
+
 async function loadSeva(){
   const feed = document.getElementById('sevaFeed');
   try{
@@ -421,47 +551,122 @@ async function loadSeva(){
     const data = await res.json();
     const posts = data.posts || [];
     if(!posts.length){
-      feed.innerHTML = `<div class="empty"><b>🤝</b>No Seva requests in ${selectedSociety.toUpperCase()}<br>Need help? Car pool? Post here</div>`;
+      feed.innerHTML = '<div class="empty"><b>🤝</b>No Seva requests in '+selectedSociety.toUpperCase()+'<br>Need help? Car pool? Post here</div>';
       return;
     }
-    feed.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="tag tag-isolated">🏠 Isolated: ${selectedSociety.toUpperCase()} only</span><span class="tag" style="background:#fef3c7">${posts.length} seva</span></div>` + posts.map(p => {
-      const isCarPool = (p.type==='Car Pool' || p.type==='Share Auto');
-      return `
-      <div class="feed-card seva">
-        <div class="feed-top"><span class="tag tag-seva">${p.type || 'Help'}</span><span style="font-size:8px;color:#94a3b8">${p.date || ''} ${p.time || ''}</span></div>
-        ${isCarPool ? `
-          <div style="display:flex;align-items:center;gap:6px;margin:6px 0;background:#fefce8;padding:8px;border-radius:10px">
-            <div style="flex:1;text-align:center"><b style="font-size:11px">${p.from_source || p.from_to?.split('→')[0] || 'From'}</b><p style="font-size:8px;color:#64748b">Source</p></div>
-            <div style="font-size:14px">→</div>
-            <div style="flex:1;text-align:center"><b style="font-size:11px">${p.to_destination || p.from_to?.split('→')[1] || 'To'}</b><p style="font-size:8px;color:#64748b">Destination</p></div>
-          </div>
-          <div style="display:flex;gap:6px;margin-top:4px">
-            ${p.date ? `<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">📅 ${p.date}</span>` : ''}
-            ${p.time ? `<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">🕒 ${p.time}</span>` : ''}
-            ${p.seats ? `<span style="font-size:8px;background:#dcfce7;padding:3px 6px;border-radius:6px">💺 ${p.seats}</span>` : ''}
-            ${p.price ? `<span style="font-size:8px;background:#fef3c7;padding:3px 6px;border-radius:6px">Rs ${p.price}</span>` : '<span style="font-size:8px;background:#dcfce7;padding:3px 6px;border-radius:6px">Free Pool</span>'}
-          </div>
-        ` : `<p style="font-size:8px;color:#94a3b8">${p.from_to || ''}</p>`}
-        <h4 style="font-size:12px;margin-top:6px">${p.title}</h4>
-        <p style="font-size:10px;color:#64748b;margin-top:4px">${p.description}</p>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-          <p style="font-size:9px;color:#16a34a">✓ ${p.name} • ${p.flat} • ${p.society_id.toUpperCase()}</p>
-          <a href="https://wa.me/91${p.phone}?text=Hi, regarding ${p.type}: ${encodeURIComponent(p.from_source||'') } to ${encodeURIComponent(p.to_destination||'') } on ${p.date||''} ${p.time||''} - ${encodeURIComponent(p.title)}" target="_blank" style="font-size:9px;background:#f59e0b;color:white;padding:4px 8px;border-radius:20px;text-decoration:none">Contact</a>
-        </div>
-      </div>`}).join('');
+    const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+    const myPhone = (verified.phone || '').toString().trim();
+    let htmlOut = '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="tag tag-isolated">🏠 Isolated: '+selectedSociety.toUpperCase()+' only</span><span class="tag" style="background:#fef3c7">'+posts.length+' seva</span></div>';
+    for(let p of posts){
+      const typeLower = (p.type||'').toLowerCase();
+      const isCarPool = typeLower.includes('car pool') || typeLower.includes('share auto') || typeLower.includes('carpool');
+      const postPhone = (p.phone||'').toString().trim();
+      const isOwner = myPhone && postPhone && myPhone === postPhone;
+      const seatsLeft = p.seats_left !== undefined ? p.seats_left : (p.seats_total !== undefined ? p.seats_total - (p.seats_booked||0) : 0);
+      const isFull = seatsLeft <=0 || p.status==='full' || (p.seats||'').toLowerCase().includes('full');
+      const bookings = p.bookings || [];
+      const myBookings = bookings.filter(b=> (b.phone||'').toString().trim() === myPhone);
+      const myConfirmed = myBookings.find(b=>b.status==='confirmed');
+      const myPending = myBookings.find(b=>b.status==='pending');
+      const myDenied = myBookings.find(b=>b.status==='denied');
+      const hasBooked = !!myConfirmed;
+      const hasPending = !!myPending;
+      const hasDenied = !!myDenied;
+      const pendingBookings = bookings.filter(b=>b.status==='pending');
+      const confirmedBookings = bookings.filter(b=>b.status==='confirmed');
+      
+      let statusBadges = '<span style="font-size:8px;color:#94a3b8">'+(p.date||'')+' '+(p.time||'')+'</span>';
+      if(isFull) statusBadges += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">FULL</span>';
+      if(hasPending) statusBadges += '<span style="font-size:8px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:10px">PENDING ⏳</span>';
+      if(hasBooked) statusBadges += '<span style="font-size:8px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:10px">BOOKED ✓</span>';
+      if(hasDenied) statusBadges += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">DENIED ❌</span>';
+      if(isOwner) statusBadges += '<span style="font-size:8px;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:10px">YOUR RIDE</span>';
+      
+      let carInfo = '';
+      if(isCarPool){
+        carInfo += '<div style="display:flex;align-items:center;gap:6px;margin:6px 0;background:#fefce8;padding:8px;border-radius:10px">';
+        carInfo += '<div style="flex:1;text-align:center"><b style="font-size:11px">'+(p.from_source || (p.from_to? p.from_to.split('→')[0] : 'From'))+'</b><p style="font-size:8px;color:#64748b">Source</p></div>';
+        carInfo += '<div style="font-size:14px">→</div>';
+        carInfo += '<div style="flex:1;text-align:center"><b style="font-size:11px">'+(p.to_destination || (p.from_to? p.from_to.split('→')[1] : 'To'))+'</b><p style="font-size:8px;color:#64748b">Destination</p></div>';
+        carInfo += '</div>';
+        carInfo += '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">';
+        if(p.date) carInfo += '<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">📅 '+p.date+'</span>';
+        if(p.time) carInfo += '<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">🕒 '+p.time+'</span>';
+        if(isFull) carInfo += '<span style="font-size:8px;background:#fee2e2;padding:3px 6px;border-radius:6px">💺 Car full</span>';
+        else carInfo += '<span style="font-size:8px;background:#dcfce7;padding:3px 6px;border-radius:6px">💺 '+(p.seats_left!==undefined?p.seats_left+' left':p.seats)+' '+(p.seats_booked?'/ '+p.seats_booked+' booked':'')+'</span>';
+        if(p.price) carInfo += '<span style="font-size:8px;background:#fef3c7;padding:3px 6px;border-radius:6px">Rs '+p.price+'/seat</span>';
+        else carInfo += '<span style="font-size:8px;background:#dcfce7;padding:3px 6px;border-radius:6px">Free Pool</span>';
+        if(p.car && p.car.make) carInfo += '<span style="font-size:8px;background:#e0f2fe;color:#0369a1;padding:3px 6px;border-radius:6px">🚗 '+(p.car.make||'')+' '+(p.car.model||'')+(p.car.type ? ' • '+p.car.type : '')+'</span>';
+        if(p.car && (p.car.seats || p.car.color)) carInfo += '<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">'+(p.car.seats||'')+(p.car.color? ' • '+p.car.color : '')+(p.car.ac?' • AC':'')+'</span>';
+        carInfo += '</div>';
+        
+        if(isOwner && pendingBookings.length){
+          carInfo += '<div style="margin-top:8px;background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:8px"><p style="font-size:9px;font-weight:800;color:#92400e">⏳ '+pendingBookings.length+' Pending Request(s):</p>';
+          for(let b of pendingBookings){
+            carInfo += '<div style="display:flex;justify-content:space-between;align-items:center;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:6px;margin-top:6px"><div><b style="font-size:10px">'+b.name+' • '+b.flat+'</b><p style="font-size:8px;color:#64748b">📱 '+b.phone+' • '+b.seats_booked+' seat(s) • '+new Date(b.created_at).toLocaleTimeString()+'</p></div><div style="display:flex;gap:4px"><button onclick="acceptBooking(\''+p.id+'\',\''+b.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">Accept</button><button onclick="denyBooking(\''+p.id+'\',\''+b.id+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;border:none;font-weight:700">Deny</button></div></div>';
+          }
+          carInfo += '</div>';
+        }
+        if(confirmedBookings.length){
+          carInfo += '<div style="margin-top:6px;background:#f0fdf4;border:1px dashed #bbf7d0;border-radius:8px;padding:6px"><p style="font-size:8px;font-weight:700;color:#166534">✅ '+confirmedBookings.length+' Confirmed: '+confirmedBookings.map(b=>b.name+'('+b.seats_booked+')').join(', ')+'</p>';
+          if(isOwner) carInfo += '<p style="font-size:7px;color:#64748b;margin-top:2px">Phones: '+confirmedBookings.map(b=>b.phone).join(', ')+'</p>';
+          carInfo += '</div>';
+        }
+        if(hasPending){
+          carInfo += '<div style="margin-top:6px;background:#fef3c7;border:1px dashed #fde68a;border-radius:8px;padding:6px"><p style="font-size:9px;font-weight:700;color:#92400e">⏳ Your request is pending approval from driver</p><p style="font-size:8px;color:#64748b">Driver '+p.name+' will accept/deny. You will be notified via WhatsApp. Mobile hidden until accepted.</p></div>';
+        }
+        if(hasDenied){
+          carInfo += '<div style="margin-top:6px;background:#fee2e2;border:1px dashed #fecaca;border-radius:8px;padding:6px"><p style="font-size:9px;font-weight:700;color:#991b1b">❌ Your request was denied by driver</p><p style="font-size:8px;color:#64748b">'+(myDenied.deny_reason||'Try another ride')+'</p></div>';
+        }
+      } else {
+        carInfo += '<p style="font-size:8px;color:#94a3b8">'+(p.from_to || '')+'</p>';
+      }
+      
+      let actionBtn = '';
+      if(isCarPool){
+        if(isOwner){
+          actionBtn = '<span style="font-size:9px;background:#e0f2fe;color:#0369a1;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #bae6fd">Your Ride • '+confirmedBookings.length+' confirmed '+(pendingBookings.length?'/ '+pendingBookings.length+' pending':'')+(isFull?' • FULL':'')+'</span>';
+        } else if(hasBooked){
+          actionBtn = '<button onclick="openWhatsAppContact(\''+p.id+'\', true)" style="font-size:9px;background:#25D366;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">WhatsApp Driver ✓</button>';
+        } else if(hasPending){
+          actionBtn = '<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #fde68a">Pending Approval ⏳</span>';
+        } else if(hasDenied){
+          actionBtn = '<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">Denied ❌</span>';
+        } else if(isFull){
+          actionBtn = '<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">Full • '+confirmedBookings.length+' booked</span>';
+        } else {
+          actionBtn = '<button onclick="openBookingModal(\''+p.id+'\')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">Book Ride</button>';
+        }
+      } else {
+        actionBtn = '<a href="https://wa.me/91'+p.phone+'?text=Hi, regarding '+encodeURIComponent(p.type)+': '+encodeURIComponent(p.title)+'" target="_blank" style="font-size:9px;background:#f59e0b;color:white;padding:4px 8px;border-radius:20px;text-decoration:none">Contact</a>';
+      }
+      
+      htmlOut += '<div class="feed-card seva"><div class="feed-top"><span class="tag tag-seva">'+(p.type || 'Help')+'</span><div style="display:flex;gap:4px;flex-wrap:wrap">'+statusBadges+'</div></div>'+carInfo+'<h4 style="font-size:12px;margin-top:6px">'+p.title+'</h4><p style="font-size:10px;color:#64748b;margin-top:4px">'+p.description+'</p><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><p style="font-size:9px;color:#16a34a">✓ '+p.name+' • '+p.flat+' • '+p.society_id.toUpperCase()+'</p><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">'+actionBtn+'</div></div></div>';
+    }
+    feed.innerHTML = htmlOut;
   }catch(e){
-    feed.innerHTML = `<div class="empty"><b>🤝</b>Backend offline<br>No seva in ${selectedSociety.toUpperCase()} yet</div>`;
+    console.error('loadSeva error', e);
+    feed.innerHTML = '<div class="empty"><b>🤝</b>Error: '+e.message+'<br>No seva in '+selectedSociety.toUpperCase()+' yet</div>';
   }
 }
 
+
 async function submitPost(){
-  const name = document.getElementById('userName').value.trim();
-  const flat = document.getElementById('userFlat').value.trim();
-  const phone = document.getElementById('userPhone').value.trim();
-  if(!name || !phone){alert('Name and phone required for contact'); return;}
+  // ALWAYS use verifiedUser for identity, not form inputs (form can have stale Piyush data)
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){
+    alert('Not logged in - please login again');
+    checkLoginGate();
+    return;
+  }
+  const name = (verified.name || '').trim();
+  const flat = (verified.flat || '').trim();
+  const phone = (verified.phone || '').toString().trim();
+  const society_id = (verified.society_id || selectedSociety).toLowerCase();
+  if(!name || !phone){alert('Name and phone required - please login again'); checkLoginGate(); return;}
   
   const payload = {
-    society_id: selectedSociety,
+    society_id: society_id,
     name, flat, phone,
     photos: []
   };
@@ -497,10 +702,30 @@ async function submitPost(){
     payload.seats = seatsVal;
     payload.price = priceVal;
     payload.when = `${dateVal} ${timeVal} • ${seatsVal} ${priceVal ? '• Rs '+priceVal : ''}`.trim();
+    // Include car from profile (BlaBla style) - ALWAYS from verifiedUser, not stale form
+    if(verified.cars && verified.cars.length){ 
+      payload.car = verified.cars[0]; 
+      console.log('Using car from verifiedUser', payload.car);
+    } else {
+      // Try fetch latest from backend to avoid undefined
+      try{
+        const carRes = await fetch(apiBase+'/api/auth/cars?phone='+phone+'&society_id='+society_id);
+        if(carRes.ok){
+          const carData = await carRes.json();
+          if(carData.cars && carData.cars.length){
+            payload.car = carData.cars[0];
+            // Update local verifiedUser with cars
+            verified.cars = carData.cars;
+            localStorage.setItem('verifiedUser', JSON.stringify(verified));
+          }
+        }
+      }catch(e){ console.log('car fetch failed', e); }
+    }
     // For list view compatibility
-    if(payload.type==='Car Pool' || payload.type==='Share Auto'){
+    if(payload.type==='Car Pool' || payload.type==='Share Auto' || payload.type.toLowerCase().includes('car pool')){
       if(!fromVal || !toVal){alert('Select From and To'); return;}
       if(!dateVal){alert('Select Date'); return;}
+      if(!payload.car){ if(!confirm('No car found in profile for '+name+'. Post without car details? You can add car in Profile → Add Car')) return; }
     }
     if(!payload.title || !payload.description){alert('Title and description required'); return;}
     url = apiBase+'/api/seva/create';
@@ -510,14 +735,16 @@ async function submitPost(){
     const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const data = await res.json();
     if(!res.ok) throw new Error(data.detail || 'Failed');
-    // Save verified user locally
-    localStorage.setItem('verifiedUser', JSON.stringify({name,flat,phone,society_id:selectedSociety}));
+    // DO NOT overwrite verifiedUser with incomplete data - keep existing cars etc
+    // Only update society if needed, preserve full verified object
+    const existing = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+    localStorage.setItem('verifiedUser', JSON.stringify({...existing, society_id: society_id, name, flat, phone}));
     closePostModal();
     // Clear forms
     document.getElementById('haatTitle').value=''; document.getElementById('haatDesc').value=''; document.getElementById('haatPrice').value='';
     document.getElementById('sevaTitle').value=''; document.getElementById('sevaDesc').value='';
     loadFeeds();
-    alert('✅ Posted to '+selectedSociety.toUpperCase()+' '+(postType==='haat'?'Haat':'Seva'));
+    alert('✅ Posted to '+society_id.toUpperCase()+' '+(postType==='haat'?'Haat':'Seva') + ' as ' + name + ' ' + flat);
   }catch(e){
     // Fallback localStorage if backend offline
     const key = (postType==='haat'?'haat_':'seva_')+selectedSociety;
@@ -568,35 +795,113 @@ async function doLogin(){
   const btn = document.getElementById('loginBtn');
   if(phone.length < 10){msgEl.innerHTML='<div style="background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;font-size:11px">Enter 10 digit phone</div>'; return;}
   btn.textContent='Verifying...'; btn.disabled=true;
-  msgEl.innerHTML='<div style="font-size:11px;color:#64748b">Checking backend...</div>';
-  try{
-    const res = await fetch(apiBase+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone, society_id: soc})});
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.detail || 'Not found');
-    const u = data.user;
-    const status = data.status;
-    // Save as verifiedUser for auto-fill
-    localStorage.setItem('verifiedUser', JSON.stringify({...u, status}));
-    localStorage.setItem('society', u.society_id || soc);
-    selectedSociety = (u.society_id || soc).toLowerCase();
-    msgEl.innerHTML=`<div style="background:#dcfce7;color:#166534;padding:8px;border-radius:8px;font-size:11px">✅ ${data.message}<br><b>${u.name}</b> • ${u.society_id.toUpperCase()} ${u.flat} • ${status}</div>`;
-    setTimeout(()=>{
-      document.getElementById('loginGate').classList.remove('show');
-      document.getElementById('loginGate').style.display='none';
-      updateLoggedUserUI({...u, status});
-      selectSociety(selectedSociety);
-      loadFeeds();
-    }, 800);
-  }catch(e){
-    msgEl.innerHTML=`<div style="background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;font-size:11px">❌ ${e.message}<br>Not registered? Click Register Flat →</div>`;
-  }finally{
-    btn.textContent='Login / Verify'; btn.disabled=false;
+  
+  // Build fresh candidate list for this login attempt
+  const candidates = [
+    window.location.origin,
+    apiBase,
+    `http://${window.location.hostname}:8000`,
+    'http://localhost:8000',
+    'http://127.0.0.1:8000'
+  ].filter((v,i,a)=>v && v.startsWith('http') && a.indexOf(v)===i);
+  
+  msgEl.innerHTML=`<div style="font-size:11px;color:#64748b">Checking login...<br>Phone: ${phone} Society: ${soc}<br>Trying: ${candidates[0]}</div>`;
+  
+  let lastError = null;
+  for(let tryBase of candidates){
+    try{
+      console.log('LOGIN trying', tryBase, phone, soc);
+      msgEl.innerHTML=`<div style="font-size:11px;color:#64748b">Trying ${tryBase}...<br>Phone: ${phone} Society: ${soc}</div>`;
+      const res = await fetch(tryBase+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone, society_id: soc})});
+      const data = await res.json();
+      console.log('LOGIN response from', tryBase, res.status, data);
+      if(!res.ok) throw new Error(data.detail || 'Not found');
+      const u = data.user;
+      const status = data.status;
+      // SUCCESS - save working backend
+      apiBase = tryBase;
+      localStorage.setItem('customBackend', tryBase);
+      localStorage.setItem('verifiedUser', JSON.stringify({...u, status}));
+      localStorage.setItem('society', u.society_id || soc);
+      selectedSociety = (u.society_id || soc).toLowerCase();
+      msgEl.innerHTML=`<div style="background:#dcfce7;color:#166534;padding:8px;border-radius:8px;font-size:11px">✅ ${data.message}<br><b>${u.name}</b> • ${u.society_id.toUpperCase()} ${u.flat} • ${status}<br>Backend: ${tryBase}</div>`;
+      setTimeout(()=>{
+        document.getElementById('loginGate').classList.remove('show');
+        document.getElementById('loginGate').style.display='none';
+        updateLoggedUserUI({...u, status});
+        selectSociety(selectedSociety);
+        loadFeeds();
+      }, 800);
+      return;
+    }catch(e){
+      console.error('LOGIN failed for', tryBase, e);
+      lastError = e;
+      continue;
+    }
   }
+  // All candidates failed
+  msgEl.innerHTML=`<div style="background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;font-size:11px">❌ All backends failed. Last: ${lastError?.message}<br><br>Tried:<br>${candidates.join('<br>')}<br><br><b>Fix:</b><br>1. Backend must be running on port 8000<br>2. Open: ${window.location.origin}/api/health<br>3. Windows Firewall: Allow Python/uvicorn on Private network<br>4. If on phone: use http://YOUR_LAPTOP_IP:8000/societyhaat-web.html (not localhost)<br><br>Not registered? Click Register Flat →</div>`;
+  btn.textContent='Login / Verify'; btn.disabled=false;
 }
 
 function goToRegisterFromLogin(){
   const soc = document.getElementById('gateSociety').value || selectedSociety;
   window.location.href='societyhaat-tower-flat.html?society='+soc;
+}
+
+function openCarModal(){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || 'null');
+  if(!verified){ alert('Login first to add car'); return; }
+  document.getElementById('carModal').classList.add('show');
+  document.getElementById('carModal').style.display='flex';
+  loadExistingCars();
+}
+function closeCarModal(){
+  document.getElementById('carModal').classList.remove('show');
+  document.getElementById('carModal').style.display='none';
+}
+function onCarMakeChange(){
+  const val = document.getElementById('carMake').value;
+  document.getElementById('carMakeCustom').style.display = val==='Other' ? 'block' : 'none';
+}
+async function saveCar(){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  const makeSel = document.getElementById('carMake').value;
+  const makeCustom = document.getElementById('carMakeCustom').value.trim();
+  const make = makeSel==='Other' ? makeCustom : makeSel;
+  const model = document.getElementById('carModel').value.trim();
+  const type = document.getElementById('carType').value;
+  const seats = document.getElementById('carSeats').value;
+  const color = document.getElementById('carColor').value.trim();
+  const number = document.getElementById('carNumber').value.trim();
+  const ac = document.getElementById('carAC').checked;
+  if(!make || !model){ document.getElementById('carMsg').innerHTML='<div style="background:#fee2e2;color:#991b1b;padding:6px;border-radius:6px;font-size:10px">Enter Make and Model</div>'; return; }
+  const btn = document.getElementById('saveCarBtn'); btn.textContent='Saving...'; btn.disabled=true;
+  try{
+    const res = await fetch(apiBase+'/api/auth/add-car',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone: verified.phone, society_id: verified.society_id || selectedSociety, make, model, type, seats, color, number, ac})});
+    const data = await res.json(); if(!res.ok) throw new Error(data.detail);
+    if(!verified.cars) verified.cars = []; const idx = verified.cars.findIndex(c=>c.make===make && c.model===model); if(idx>=0) verified.cars[idx]=data.car; else verified.cars.push(data.car);
+    localStorage.setItem('verifiedUser', JSON.stringify(verified));
+    document.getElementById('carMsg').innerHTML='<div style="background:#dcfce7;color:#166534;padding:6px;border-radius:6px;font-size:10px">✅ '+data.message+'</div>';
+    loadExistingCars(); updateCarAutoFill();
+  }catch(e){
+    if(!verified.cars) verified.cars=[]; const car = {make, model, type, seats, color, number, ac, id: Date.now().toString()}; const idx = verified.cars.findIndex(c=>c.make===make && c.model===model); if(idx>=0) verified.cars[idx]=car; else verified.cars.push(car); localStorage.setItem('verifiedUser', JSON.stringify(verified));
+    document.getElementById('carMsg').innerHTML='<div style="background:#fef3c7;color:#92400e;padding:6px;border-radius:6px;font-size:10px">Offline, saved locally: '+make+' '+model+'</div>';
+    loadExistingCars(); updateCarAutoFill();
+  }finally{ btn.textContent='Save Car Profile'; btn.disabled=false; }
+}
+function loadExistingCars(){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}'); const cars = verified.cars || []; const el = document.getElementById('existingCars');
+  if(!cars.length){ el.innerHTML='<p style="font-size:9px;color:#94a3b8;text-align:center">No cars yet - Add like BlaBla</p>'; return; }
+  el.innerHTML = '<p style="font-size:9px;font-weight:700;margin-bottom:4px">Your Cars:</p>' + cars.map(c=>'<div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center"><div><b style="font-size:11px">'+c.make+' '+c.model+'</b><p style="font-size:8px;color:#64748b">'+c.type+' • '+c.seats+' • '+(c.color||'')+' '+(c.ac?'• AC':'')+' '+(c.number?'• ..'+c.number:'')+'</p></div><span style="font-size:8px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:10px">Default</span></div>').join('');
+}
+function updateCarAutoFill(){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}'); const cars = verified.cars || []; const info = document.getElementById('carAutoFillInfo'); const warn = document.getElementById('noCarWarning'); const text = document.getElementById('carAutoFillText');
+  if(!cars.length){ if(info) info.style.display='none'; if(warn) warn.style.display='block'; return; }
+  if(warn) warn.style.display='none'; if(info) info.style.display='block'; const car = cars[0]; if(text) text.textContent = car.make+' '+car.model+' • '+car.type+' • '+car.seats+' • '+(car.color||'')+' '+(car.ac?'AC':'Non-AC');
+  const desc = document.getElementById('sevaDesc'); if(desc && !desc.value){ desc.value = car.make+' '+car.model+' ('+car.type+', '+car.seats+', '+(car.color||'')+' '+(car.ac?'AC':'')+'). Comfortable ride, well maintained.'; }
+  const seatsSel = document.getElementById('sevaSeats'); if(seatsSel){ const carSeatsNum = parseInt(car.seats) || 5; const avail = Math.max(1, carSeatsNum - 1); for(let opt of seatsSel.options){ if(opt.value.includes(avail+' seat')){ seatsSel.value = opt.value; break; } } }
 }
 
 function logoutUser(){
@@ -605,6 +910,147 @@ function logoutUser(){
     localStorage.removeItem('pendingUser');
     checkLoginGate();
   }
+}
+
+// === BOOKING FLOW - Pending Approval Workflow (Privacy: Mobile hidden until accepted) ===
+let currentBookingPost = null;
+let currentBookingPostData = null;
+
+async function openBookingModal(postId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){
+    alert('Login first to book ride');
+    checkLoginGate();
+    return;
+  }
+  try{
+    const res = await fetch(apiBase+'/api/seva/list');
+    const data = await res.json();
+    const post = (data.posts||[]).find(p=>p.id===postId);
+    if(!post){ alert('Ride not found'); return; }
+    currentBookingPost = postId;
+    currentBookingPostData = post;
+    const infoEl = document.getElementById('bookingRideInfo');
+    infoEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:12px">${post.from_source} → ${post.to_destination}</b><span style="font-size:9px;background:#dcfce7;padding:3px 6px;border-radius:6px">💺 ${post.seats_left!==undefined?post.seats_left+' left':post.seats}</span></div>
+      <p style="font-size:10px;margin-top:4px">👨‍✈️ Driver: ${post.name} • ${post.flat} • ${post.car?post.car.make+' '+post.car.model:''}</p>
+      <p style="font-size:9px;color:#64748b">📅 ${post.date||''} ${post.time||''} • Rs ${post.price||'0'}/seat</p>
+      <p style="font-size:8px;color:#dc2626;background:#fee2e2;padding:4px 6px;border-radius:6px;margin-top:6px">🔒 Privacy: Driver mobile hidden until he ACCEPTS your request. Your mobile will be shown to driver for approval.</p>
+    `;
+    document.getElementById('bookingName').value = verified.name || '';
+    document.getElementById('bookingFlat').value = verified.flat || '';
+    const seatsLeft = post.seats_left !== undefined ? post.seats_left : 4;
+    const seatsSel = document.getElementById('bookingSeats');
+    seatsSel.innerHTML = '';
+    for(let i=1;i<=seatsLeft && i<=4;i++){
+      const opt = document.createElement('option');
+      opt.textContent = i + (i===1?' seat':' seats');
+      opt.value = i;
+      seatsSel.appendChild(opt);
+    }
+    updateBookingTotal();
+    document.getElementById('bookingMsg').innerHTML='';
+    document.getElementById('bookingModal').classList.add('show');
+    document.getElementById('bookingModal').style.display='flex';
+  }catch(e){
+    alert('Failed to load ride: '+e.message);
+  }
+}
+
+function updateBookingTotal(){
+  const seats = parseInt(document.getElementById('bookingSeats').value) || 1;
+  const price = parseInt(currentBookingPostData?.price || 0);
+  document.getElementById('bookingPriceText').textContent = `Rs ${price||0} per seat`;
+  document.getElementById('bookingTotalText').textContent = price ? `Total: Rs ${price * seats} for ${seats} seat(s)` : `Free ride - ${seats} seat(s)`;
+}
+
+document.addEventListener('change', (e)=>{
+  if(e.target.id==='bookingSeats'){ updateBookingTotal(); }
+});
+
+function closeBookingModal(){
+  document.getElementById('bookingModal').classList.remove('show');
+  document.getElementById('bookingModal').style.display='none';
+  currentBookingPost = null;
+  currentBookingPostData = null;
+}
+
+async function confirmBooking(){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  const seatsVal = document.getElementById('bookingSeats').value;
+  const seatsNum = parseInt(seatsVal) || 1;
+  const btn = document.getElementById('confirmBookingBtn');
+  btn.textContent='Requesting...'; btn.disabled=true;
+  const msgEl = document.getElementById('bookingMsg');
+  try{
+    const res = await fetch(apiBase+'/api/seva/book',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post_id: currentBookingPost, phone: verified.phone, name: verified.name, flat: verified.flat, seats: seatsNum})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    msgEl.innerHTML = `<div style="background:#fef3c7;color:#92400e;padding:10px;border-radius:10px;font-size:11px;border:1px solid #fde68a">⏳ <b>Request Sent!</b><br>${data.message}<br><br><b>🔒 Privacy Flow:</b><br>• Your mobile ${verified.phone} shown to driver for approval<br>• Driver mobile hidden from you until he ACCEPTS<br>• You will get WhatsApp notification on Accept/Deny<br><br>Wait for driver approval.</div>`;
+    setTimeout(()=>{
+      closeBookingModal();
+      loadSeva();
+    }, 2000);
+  }catch(e){
+    msgEl.innerHTML = `<div style="background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;font-size:11px">❌ ${e.message}</div>`;
+  }finally{
+    btn.textContent='Request Booking'; btn.disabled=false;
+  }
+}
+
+async function acceptBooking(postId, bookingId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  if(!confirm('Accept this booking?\n\n• Seat will be confirmed\n• Piyush will see your mobile + WhatsApp\n• Auto WhatsApp will be sent to Piyush')) return;
+  try{
+    const res = await fetch(apiBase+'/api/seva/booking/accept',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id: bookingId, owner_phone: verified.phone})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    alert('✅ Accepted! ' + data.message + '\n\nWhatsApp will open to notify Piyush with ACCEPTED message');
+    const waText = data.whatsapp_text;
+    window.open(`https://wa.me/91${data.booking.phone}?text=${encodeURIComponent(waText)}`,'_blank');
+    loadSeva();
+  }catch(e){
+    alert('❌ '+e.message);
+  }
+}
+
+async function denyBooking(postId, bookingId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  const reason = prompt('Reason for denial (will be sent to requester via WhatsApp):','Seats not available / Different timing');
+  if(reason===null) return;
+  try{
+    const res = await fetch(apiBase+'/api/seva/booking/deny',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id: bookingId, owner_phone: verified.phone, reason})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    alert('❌ Denied! ' + data.message + '\n\nWhatsApp will open to notify Piyush with DENIED message');
+    const waText = data.whatsapp_text;
+    window.open(`https://wa.me/91${data.booking.phone}?text=${encodeURIComponent(waText)}`,'_blank');
+    loadSeva();
+  }catch(e){
+    alert('❌ '+e.message);
+  }
+}
+
+function openWhatsAppContact(postId, isConfirmed=false){
+  fetch(apiBase+'/api/seva/list').then(r=>r.json()).then(data=>{
+    const post = (data.posts||[]).find(p=>p.id===postId);
+    if(!post){
+      alert('Ride not found'); return;
+    }
+    const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+    const myPhone = (verified.phone||'').toString().trim();
+    const bookings = post.bookings || [];
+    const myConfirmed = bookings.find(b=> (b.phone||'').toString().trim()===myPhone && b.status==='confirmed');
+    if(!myConfirmed && !isConfirmed){
+      alert('⚠️ Privacy: You can only WhatsApp driver AFTER your request is ACCEPTED by driver.\n\nYour current status: Pending approval. Wait for driver to accept.\n\nDriver mobile is hidden until accepted.');
+      return;
+    }
+    const waText = `Hi ${post.name}, my ride ${post.from_source} to ${post.to_destination} on ${post.date} ${post.time} was ACCEPTED ✅ Thanks! I am ${verified.name} ${verified.flat}. See you at pickup. My phone: ${verified.phone}`;
+    window.open(`https://wa.me/91${post.phone}?text=${encodeURIComponent(waText)}`,'_blank');
+  });
 }
 
 // Make profile button logout if logged in

@@ -1,20 +1,44 @@
 [
   {
     "society_id": "sev2",
-    "flat": "B16 - 806",
+    "flat": "B16-806",
     "name": "Mohan Poddar",
     "phone": "9560779666",
     "status": "approved",
-    "created_at": "2026-09-29T02:47:13.876011",
-    "approved_at": "2026-09-29T02:47:28.660510"
+    "created_at": "2026-10-02T10:15:02.263342",
+    "approved_at": "2026-10-02T10:15:02.263342",
+    "cars": [
+      {
+        "id": "Maruti_WagonR_9560779666",
+        "make": "Maruti Suzuki",
+        "model": "WagonR",
+        "type": "Hatchback",
+        "seats": "5 Seater",
+        "color": "White",
+        "number": "8060",
+        "ac": true,
+        "created_at": "2026-10-02T10:15:02.263342"
+      }
+    ]
   },
   {
     "society_id": "sev2",
-    "flat": "A2 - 102",
+    "flat": "A2-102",
     "name": "Piyush Poddar",
     "phone": "9625561517",
     "status": "approved",
-    "created_at": "2026-09-29T02:54:52.306823",
-    "approved_at": "2026-09-29T02:55:02.192172"
+    "created_at": "2026-10-02T10:15:02.263342",
+    "approved_at": "2026-10-02T10:15:02.263342",
+    "cars": []
+  },
+  {
+    "society_id": "sev2",
+    "flat": "B16-805",
+    "name": "Test User",
+    "phone": "9999999999",
+    "status": "approved",
+    "created_at": "2026-10-02T10:15:02.263342",
+    "approved_at": "2026-10-02T10:15:02.263342",
+    "cars": []
   }
 ]
