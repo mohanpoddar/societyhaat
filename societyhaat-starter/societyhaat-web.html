@@ -59,6 +59,23 @@ textarea{resize:vertical;min-height:60px}
 .btn-gray{background:#f1f5f9;color:#334155}
 .empty{text-align:center;padding:30px 10px;color:#94a3b8;font-size:11px}
 .empty b{font-size:30px;display:block;margin-bottom:8px}
+
+/* Searchable Location Dropdown - Option A */
+.search-wrap{position:relative}
+.search-input{width:100%;background:white;padding:10px 36px 10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;outline:none;transition:all 0.2s}
+.search-input:focus{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.15)}
+.search-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:#94a3b8;pointer-events:none}
+.search-dropdown{position:absolute;top:100%;left:0;right:0;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;margin-top:6px;max-height:280px;overflow-y:auto;box-shadow:0 10px 25px rgba(0,0,0,0.12);display:none}
+.search-dropdown.show{display:block}
+.search-group{padding:6px 10px 3px;font-size:7px;font-weight:800;letter-spacing:0.5px;color:#64748b;text-transform:uppercase;background:#f8fafc;position:sticky;top:0}
+.search-item{padding:9px 12px;font-size:11px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9}
+.search-item:hover{background:#fef3c7}
+.search-item.selected{background:#fef3c7;font-weight:700}
+.search-item .meta{font-size:8px;color:#94a3b8}
+.search-item.add-custom{background:#f0fdf4;color:#166534;font-weight:700}
+.swap-btn{width:32px;height:32px;background:white;border:1px solid #e2e8f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+.swap-btn:hover{background:#fef3c7;transform:rotate(180deg);transition:0.3s}
+
 </style>
 </head>
 <body>
@@ -213,23 +230,22 @@ textarea{resize:vertical;min-height:60px}
 <div id="carSelector" style="display:none;background:white;border:1px solid #bbf7d0;border-radius:8px;padding:8px;margin-bottom:8px"><label style="font-size:8px;font-weight:700;margin:0">Choose Car for this Ride:</label><select id="carSelectorDropdown" onchange="onCarSelectorChange()" style="width:100%;margin-top:4px;background:white;padding:6px;border-radius:6px;font-size:10px"></select><p style="font-size:7px;color:#16a34a;margin-top:4px">✓ You have multiple cars - select which car you will use</p></div>
 <div id="carAutoFillInfo" style="display:none;background:white;border:1px solid #bbf7d0;border-radius:8px;padding:8px;margin-bottom:8px"><p style="font-size:9px;color:#166534;font-weight:700">✓ Car auto-filled from profile:</p><p id="carAutoFillText" style="font-size:10px;margin-top:2px"></p></div>
 <div id="noCarWarning" style="display:none;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px;margin-bottom:8px;text-align:center"><p style="font-size:9px;color:#991b1b">⚠️ No car added yet. Add car first for car pooling</p><button type="button" onclick="openCarModal()" style="margin-top:4px;padding:6px 10px;background:#16a34a;color:white;border:none;border-radius:6px;font-size:10px;font-weight:700">+ Add Car (Make, Type, Seats)</button></div>
-<div style="display:flex;gap:6px;align-items:center">
-<div style="flex:1">
-<label style="margin-top:0">From (Source)</label>
-<select id="sevaFrom" style="background:white">
-<option>SEV2 Main Gate</option><option>SEV2 B16 Gate</option><option>APCPTH Gate</option><option>ALP Gate</option><option>Pari Chowk</option><option>Alpha 1 Metro</option><option>Delta 1</option><option>Knowledge Park</option><option>Sector 52 Metro</option><option>Botanical Garden</option><option>Custom</option>
-</select>
-<input id="sevaFromCustom" placeholder="Custom source" style="display:none;margin-top:4px">
+<div style="display:flex;gap:8px;align-items:flex-end">
+<div style="flex:1" class="search-wrap">
+<label style="margin-top:0">From (Source) 🔍</label>
+<input id="sevaFrom" class="search-input" placeholder="Type: SEV2, Pari Chowk, Metro..." autocomplete="off" onfocus="openLocationDropdown('from')" oninput="filterLocationDropdown('from')" />
+<span class="search-icon">⌕</span>
+<div id="sevaFromDropdown" class="search-dropdown"></div>
 </div>
-<div style="padding-top:18px">→</div>
-<div style="flex:1">
-<label style="margin-top:0">To (Destination)</label>
-<select id="sevaTo" style="background:white">
-<option>Pari Chowk</option><option>Alpha 1 Metro</option><option>Sector 52 Metro</option><option>Botanical Garden Metro</option><option>Knowledge Park</option><option>SEV2 Main Gate</option><option>APCPTH Gate</option><option>ALP Gate</option><option>Delhi</option><option>Noida</option><option>Custom</option>
-</select>
-<input id="sevaToCustom" placeholder="Custom destination" style="display:none;margin-top:4px">
+<div style="padding-bottom:4px"><button type="button" class="swap-btn" onclick="swapFromTo()" title="Swap From/To">⇄</button></div>
+<div style="flex:1" class="search-wrap">
+<label style="margin-top:0">To (Destination) 🔍</label>
+<input id="sevaTo" class="search-input" placeholder="Type: Metro, Delhi, Noida..." autocomplete="off" onfocus="openLocationDropdown('to')" oninput="filterLocationDropdown('to')" />
+<span class="search-icon">⌕</span>
+<div id="sevaToDropdown" class="search-dropdown"></div>
 </div>
 </div>
+<p style="font-size:7px;color:#64748b;margin-top:4px">💡 Type 2 letters to search 100+ locations • Recent & Popular shown first • Custom allowed</p>
 <div style="display:flex;gap:6px;margin-top:8px">
 <div style="flex:1"><label>Date</label><input id="sevaDate" type="date" style="background:white"></div>
 <div style="flex:1"><label>Time</label><input id="sevaTime" type="time" style="background:white"></div>
@@ -382,6 +398,214 @@ function selectSociety(soc){
  loadFeeds();
 }
 
+// === LOCATIONS DATA - 100+ locations, backend-driven in future ===
+// Society-specific popular locations
+const LOCATION_DATA = {
+  all: [
+    // Society Gates - Most popular
+    {name: "SEV2 Main Gate", cat: "Society Gate", soc: "sev2", popular: true},
+    {name: "SEV2 B16 Gate", cat: "Society Gate", soc: "sev2", popular: true},
+    {name: "SEV2 A1 Gate", cat: "Society Gate", soc: "sev2"},
+    {name: "SEV2 B6 Gate", cat: "Society Gate", soc: "sev2"},
+    {name: "APCPTH Gate", cat: "Society Gate", soc: "apcpth", popular: true},
+    {name: "APCPTH Main Gate", cat: "Society Gate", soc: "apcpth"},
+    {name: "ALP Gate", cat: "Society Gate", soc: "alp", popular: true},
+    {name: "ALP A Block Gate", cat: "Society Gate", soc: "alp"},
+    {name: "Supertech Eco Village 2", cat: "Society", soc: "sev2"},
+    {name: "Centurion Park Terrace", cat: "Society", soc: "apcpth"},
+    {name: "Leisure Park", cat: "Society", soc: "alp"},
+    // Metro - 20+ stations
+    {name: "Pari Chowk Metro", cat: "Metro", popular: true},
+    {name: "Alpha 1 Metro", cat: "Metro", popular: true},
+    {name: "Delta 1 Metro", cat: "Metro"},
+    {name: "GNIDA Office Metro", cat: "Metro"},
+    {name: "Knowledge Park 2 Metro", cat: "Metro"},
+    {name: "Botanical Garden Metro", cat: "Metro", popular: true},
+    {name: "Sector 52 Metro", cat: "Metro", popular: true},
+    {name: "Sector 51 Metro", cat: "Metro"},
+    {name: "Noida City Centre Metro", cat: "Metro"},
+    {name: "Noida Sector 18 Metro", cat: "Metro"},
+    {name: "Akshardham Metro", cat: "Metro"},
+    {name: "Rajiv Chowk Metro", cat: "Metro"},
+    {name: "Kashmere Gate Metro", cat: "Metro"},
+    {name: "Hauz Khas Metro", cat: "Metro"},
+    {name: "Mandi House Metro", cat: "Metro"},
+    // Office / IT Hubs
+    {name: "Knowledge Park", cat: "Office Hub", popular: true},
+    {name: "Knowledge Park 1", cat: "Office Hub"},
+    {name: "Knowledge Park 2", cat: "Office Hub"},
+    {name: "Knowledge Park 3", cat: "Office Hub"},
+    {name: "Tech Zone 4", cat: "Office Hub"},
+    {name: "Noida Sector 62", cat: "Office Hub", popular: true},
+    {name: "Noida Sector 63", cat: "Office Hub"},
+    {name: "Noida Sector 18", cat: "Office Hub"},
+    {name: "Film City Noida", cat: "Office Hub"},
+    {name: "Connaught Place (CP)", cat: "Office Hub", popular: true},
+    {name: "Nehru Place", cat: "Office Hub"},
+    {name: "Gurgaon Cyber City", cat: "Office Hub"},
+    {name: "Gurgaon Sector 44", cat: "Office Hub"},
+    // Malls / Markets
+    {name: "Gaur City Mall", cat: "Mall/Market", popular: true},
+    {name: "GIP Mall Noida", cat: "Mall/Market"},
+    {name: "DLF Mall of India", cat: "Mall/Market"},
+    {name: "Ansal Plaza", cat: "Mall/Market"},
+    {name: "V3S Mall", cat: "Mall/Market"},
+    {name: "Jagat Farm", cat: "Market"},
+    {name: "Gaur Chowk", cat: "Market", popular: true},
+    {name: "Kisan Chowk", cat: "Market"},
+    // Hospitals / Education
+    {name: "Kailash Hospital", cat: "Hospital"},
+    {name: "Sharda Hospital", cat: "Hospital"},
+    {name: "Yatharth Hospital", cat: "Hospital"},
+    {name: "Galgotias University", cat: "College"},
+    {name: "Sharda University", cat: "College"},
+    {name: "Amity University", cat: "College"},
+    {name: "NIET College", cat: "College"},
+    // Cities
+    {name: "Delhi", cat: "City", popular: true},
+    {name: "Noida", cat: "City", popular: true},
+    {name: "Greater Noida", cat: "City"},
+    {name: "Ghaziabad", cat: "City"},
+    {name: "Faridabad", cat: "City"},
+    {name: "Gurgaon", cat: "City"},
+    // Other common
+    {name: "Sector 150 Noida", cat: "Area"},
+    {name: "Sector 137 Noida", cat: "Area"},
+    {name: "Crossings Republik", cat: "Area"},
+    {name: "Indirapuram", cat: "Area"},
+    {name: "Vaishali", cat: "Area"},
+    {name: "Laxmi Nagar", cat: "Area"},
+    {name: "Preet Vihar", cat: "Area"},
+    {name: "Anand Vihar", cat: "Area"},
+    {name: "New Ashok Nagar", cat: "Area"},
+    {name: "Mayur Vihar", cat: "Area"},
+    {name: "Lajpat Nagar", cat: "Area"},
+    {name: "Saket", cat: "Area"},
+    {name: "Dwarka", cat: "Area"},
+    {name: "Rohini", cat: "Area"},
+    {name: "Janakpuri", cat: "Area"},
+    {name: "Rajouri Garden", cat: "Area"},
+    {name: "Tilak Nagar", cat: "Area"},
+    {name: "Uttam Nagar", cat: "Area"},
+    {name: "Vikaspuri", cat: "Area"},
+    {name: "Palam", cat: "Area"},
+    {name: "Mahipalpur", cat: "Area"},
+    {name: "Aerocity", cat: "Area"},
+    {name: "IGI Airport T1", cat: "Airport", popular: true},
+    {name: "IGI Airport T2", cat: "Airport"},
+    {name: "IGI Airport T3", cat: "Airport"},
+    {name: "Jewar Airport", cat: "Airport"},
+  ]
+};
+
+function getRecentLocations(type){
+  try{
+    const key = type==='from' ? 'recent_from' : 'recent_to';
+    return JSON.parse(localStorage.getItem(key) || '[]');
+  }catch(e){ return []; }
+}
+function saveRecentLocation(type, name){
+  try{
+    const key = type==='from' ? 'recent_from' : 'recent_to';
+    let arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr = arr.filter(n=>n!==name);
+    arr.unshift(name);
+    arr = arr.slice(0,5);
+    localStorage.setItem(key, JSON.stringify(arr));
+  }catch(e){}
+}
+function filterLocations(query, societyId){
+  const q = (query||'').toLowerCase().trim();
+  let items = LOCATION_DATA.all;
+  // If no query, show popular + society gates first
+  if(!q){
+    const socGates = items.filter(l=>l.soc===societyId || l.soc===undefined).filter(l=>l.popular).slice(0,8);
+    return socGates;
+  }
+  // Search
+  return items.filter(l=> l.name.toLowerCase().includes(q) || (l.cat||'').toLowerCase().includes(q)).slice(0,20);
+}
+function openLocationDropdown(type){
+  const input = document.getElementById(type==='from' ? 'sevaFrom' : 'sevaTo');
+  const dropdown = document.getElementById(type==='from' ? 'sevaFromDropdown' : 'sevaToDropdown');
+  filterLocationDropdown(type);
+  dropdown.classList.add('show');
+}
+function closeLocationDropdowns(){
+  document.querySelectorAll('.search-dropdown').forEach(d=>d.classList.remove('show'));
+}
+function filterLocationDropdown(type){
+  const input = document.getElementById(type==='from' ? 'sevaFrom' : 'sevaTo');
+  const dropdown = document.getElementById(type==='from' ? 'sevaFromDropdown' : 'sevaToDropdown');
+  const query = input.value;
+  const recent = getRecentLocations(type);
+  const soc = selectedSociety;
+  const filtered = filterLocations(query, soc);
+  
+  let html = '';
+  // Recent if no query
+  if(!query && recent.length){
+    html += '<div class="search-group">📍 Recent</div>';
+    recent.forEach(name=>{
+      html += '<div class="search-item" onclick="selectLocation(\''+type+'\',\''+name.replace(/'/g,"\\'")+'\')"><span>'+name+'</span><span class="meta">Recent</span></div>';
+    });
+  }
+  // Popular / Filtered
+  if(!query){
+    html += '<div class="search-group">⭐ Popular in '+soc.toUpperCase()+'</div>';
+  } else {
+    html += '<div class="search-group">🔍 Results for \''+query+'\' ('+filtered.length+')</div>';
+  }
+  if(filtered.length){
+    filtered.forEach(loc=>{
+      const isPop = loc.popular ? '⭐ ' : '';
+      html += '<div class="search-item" onclick="selectLocation(\''+type+'\',\''+loc.name.replace(/'/g,"\\'")+'\')"><span>'+isPop+loc.name+'</span><span class="meta">'+loc.cat+'</span></div>';
+    });
+  } else {
+    html += '<div style="padding:12px;text-align:center;color:#94a3b8;font-size:10px">No results for \''+query+'\'</div>';
+  }
+  // Custom add
+  if(query && query.length>=2){
+    const exists = LOCATION_DATA.all.some(l=>l.name.toLowerCase()===query.toLowerCase());
+    if(!exists){
+      html += '<div class="search-group">➕ Custom</div>';
+      html += '<div class="search-item add-custom" onclick="selectLocation(\''+type+'\',\''+query.replace(/'/g,"\\'")+'\')"><span>➕ Add Custom: \''+query+'\'</span><span class="meta">Save</span></div>';
+    }
+  }
+  // All categories hint
+  if(!query){
+    html += '<div style="padding:8px;text-align:center"><span style="font-size:7px;color:#94a3b8">💡 Type to search 100+ locations • Metro, Mall, Hospital, Airport</span></div>';
+  }
+  dropdown.innerHTML = html;
+  dropdown.classList.add('show');
+}
+function selectLocation(type, name){
+  const input = document.getElementById(type==='from' ? 'sevaFrom' : 'sevaTo');
+  input.value = name;
+  saveRecentLocation(type, name);
+  closeLocationDropdowns();
+  // If custom, add to all list for future
+  if(!LOCATION_DATA.all.some(l=>l.name===name)){
+    LOCATION_DATA.all.unshift({name: name, cat: "Custom", popular: false});
+  }
+}
+function swapFromTo(){
+  const fromEl = document.getElementById('sevaFrom');
+  const toEl = document.getElementById('sevaTo');
+  const tmp = fromEl.value;
+  fromEl.value = toEl.value;
+  toEl.value = tmp;
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.search-wrap')){
+    closeLocationDropdowns();
+  }
+});
+
+
+
 function switchTab(tab){
  currentTab = tab;
  localStorage.setItem('tab',tab);
@@ -478,14 +702,7 @@ function onSevaTypeChange(){
  }
 }
 // Custom source/destination toggles
-document.addEventListener('change', (e)=>{
- if(e.target.id==='sevaFrom'){
-  document.getElementById('sevaFromCustom').style.display = e.target.value==='Custom' ? 'block' : 'none';
- }
- if(e.target.id==='sevaTo'){
-  document.getElementById('sevaToCustom').style.display = e.target.value==='Custom' ? 'block' : 'none';
- }
-});
+// Old Custom dropdown removed - now searchable with custom add
 
 function goRegister(){
  window.location.href='societyhaat-tower-flat.html?society='+selectedSociety;
@@ -711,13 +928,9 @@ async function submitPost(){
   payload.type = document.getElementById('sevaType').value;
   payload.title = document.getElementById('sevaTitle').value.trim();
   payload.description = document.getElementById('sevaDesc').value.trim();
-  // Car pool fields
-  const fromSel = document.getElementById('sevaFrom').value;
-  const fromCustom = document.getElementById('sevaFromCustom').value.trim();
-  const toSel = document.getElementById('sevaTo').value;
-  const toCustom = document.getElementById('sevaToCustom').value.trim();
-  const fromVal = fromSel==='Custom' ? fromCustom : fromSel;
-  const toVal = toSel==='Custom' ? toCustom : toSel;
+  // Car pool fields - NEW searchable inputs (Option A)
+  const fromVal = document.getElementById('sevaFrom').value.trim();
+  const toVal = document.getElementById('sevaTo').value.trim();
   const dateVal = document.getElementById('sevaDate').value;
   const timeVal = document.getElementById('sevaTime').value;
   const seatsVal = document.getElementById('sevaSeats').value;

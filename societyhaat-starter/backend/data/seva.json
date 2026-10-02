@@ -1,1 +1,40 @@
-[]
+[
+  {
+    "id": "03b19b58",
+    "society_id": "sev2",
+    "type": "Car Pool",
+    "title": "Car Pool",
+    "description": "Maruti Suzuki WagonR (Hatchback, 5 Seater, White AC). Comfortable ride, well maintained.",
+    "when": "2026-10-04 07:40 • 1 seat",
+    "from_to": "EV2 Gate No. 2 → Sector 52 Metro",
+    "from_source": "EV2 Gate No. 2",
+    "to_destination": "Sector 52 Metro",
+    "date": "2026-10-04",
+    "time": "07:40",
+    "seats": "1 seat",
+    "seats_total": 1,
+    "seats_booked": 0,
+    "seats_pending": 0,
+    "seats_left": 1,
+    "price": "",
+    "phone": "9560779666",
+    "name": "Mohan Poddar",
+    "flat": "B16-806",
+    "car": {
+      "id": "Maruti_WagonR_9560779666",
+      "make": "Maruti Suzuki",
+      "model": "WagonR",
+      "type": "Hatchback",
+      "seats": "5 Seater",
+      "color": "White",
+      "number": "8060",
+      "ac": true,
+      "created_at": "2026-10-02T23:55:35.381482"
+    },
+    "car_id": "Maruti_WagonR_9560779666",
+    "bookings": [],
+    "created_at": "2026-10-03T01:40:34.499706",
+    "status": "active",
+    "owner_closed": false
+  }
+]
