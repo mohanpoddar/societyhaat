@@ -241,6 +241,81 @@ async def add_car(payload: dict):
     save_json(USERS_FILE, users)
     return {"message": f"Car {car_make} {car_model} saved", "car": car, "cars": users[found_idx]["cars"]}
 
+
+@router.post("/delete-car")
+async def delete_car(payload: dict):
+    phone = payload.get("phone","").strip()
+    car_id = payload.get("car_id","").strip()
+    make = payload.get("make","").strip()
+    model = payload.get("model","").strip()
+    society_id = payload.get("society_id","sev2").strip().lower() or "sev2"
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone required")
+    if not car_id and not (make and model):
+        raise HTTPException(status_code=400, detail="car_id or make+model required")
+    users = load_json(USERS_FILE)
+    found_idx = -1
+    for i, u in enumerate(users):
+        if u.get("phone") == phone and u.get("society_id","sev2").lower() == society_id:
+            found_idx = i
+            break
+    if found_idx == -1:
+        for i, u in enumerate(users):
+            if u.get("phone") == phone:
+                found_idx = i
+                break
+    if found_idx == -1:
+        raise HTTPException(status_code=404, detail="User not found")
+    cars = users[found_idx].get("cars", [])
+    original_len = len(cars)
+    if car_id:
+        cars = [c for c in cars if c.get("id") != car_id]
+    else:
+        cars = [c for c in cars if not (c.get("make")==make and c.get("model")==model)]
+    if len(cars) == original_len:
+        raise HTTPException(status_code=404, detail="Car not found")
+    users[found_idx]["cars"] = cars
+    save_json(USERS_FILE, users)
+    return {"message": "Car deleted", "cars": cars}
+
+@router.post("/update-car")
+async def update_car(payload: dict):
+    phone = payload.get("phone","").strip()
+    car_id = payload.get("car_id","").strip()
+    society_id = payload.get("society_id","sev2").strip().lower() or "sev2"
+    if not phone or not car_id:
+        raise HTTPException(status_code=400, detail="phone and car_id required")
+    users = load_json(USERS_FILE)
+    found_idx = -1
+    for i, u in enumerate(users):
+        if u.get("phone") == phone and u.get("society_id","sev2").lower() == society_id:
+            found_idx = i
+            break
+    if found_idx == -1:
+        for i, u in enumerate(users):
+            if u.get("phone") == phone:
+                found_idx = i
+                break
+    if found_idx == -1:
+        raise HTTPException(status_code=404, detail="User not found")
+    cars = users[found_idx].get("cars", [])
+    car_idx = -1
+    for idx, c in enumerate(cars):
+        if c.get("id") == car_id:
+            car_idx = idx
+            break
+    if car_idx == -1:
+        raise HTTPException(status_code=404, detail="Car not found")
+    # Update fields
+    for field in ["make","model","type","seats","color","number","ac"]:
+        if field in payload:
+            cars[car_idx][field] = payload[field]
+    cars[car_idx]["updated_at"] = datetime.now().isoformat()
+    users[found_idx]["cars"] = cars
+    save_json(USERS_FILE, users)
+    return {"message": "Car updated", "car": cars[car_idx], "cars": cars}
+
+
 @router.get("/cars")
 async def get_cars(phone: str = "", society_id: str = "sev2"):
     if not phone:

@@ -18,6 +18,17 @@
         "number": "8060",
         "ac": true,
         "created_at": "2026-10-02T23:55:35.381482"
+      },
+      {
+        "id": "Tata_Creta_9560779666",
+        "make": "Tata",
+        "model": "Creta",
+        "type": "SUV",
+        "seats": "7 Seater",
+        "color": "Silver",
+        "number": "4096",
+        "ac": true,
+        "created_at": "2026-10-03T00:46:34.387693"
       }
     ]
   },

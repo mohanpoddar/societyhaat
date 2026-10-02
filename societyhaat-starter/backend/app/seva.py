@@ -133,6 +133,8 @@ async def book_ride(payload: dict):
         raise HTTPException(status_code=404, detail="Ride not found")
     if post.get('phone')==booker_phone:
         raise HTTPException(status_code=400, detail="You cannot book your own ride")
+    if post.get('status') in ('full','cancelled') or post.get('owner_closed'):
+        raise HTTPException(status_code=400, detail=f"Ride is {post.get('status','full')} - owner closed bookings. Cannot book now")
     pending_booked = sum(b.get('seats_booked',0) for b in post.get('bookings',[]) if b.get('status')=='pending')
     available = post.get('seats_total', post.get('seats_left',0)) - post.get('seats_booked',0) - pending_booked
     if available < seats_requested:
@@ -549,14 +551,179 @@ async def get_bookings(phone: str = "", post_id: str = ""):
     bookings = sorted(bookings, key=lambda x: x.get('created_at',''), reverse=True)
     return {"bookings": bookings, "count": len(bookings)}
 
+@router.post("/booking/undo-deny")
+async def undo_deny_booking(payload: dict):
+    """Mohan wants to allow Piyush again after denying - reopen workflow"""
+    booking_id = payload.get("booking_id","").strip()
+    owner_phone = payload.get("owner_phone","").strip()
+    if not booking_id or not owner_phone:
+        raise HTTPException(status_code=400, detail="booking_id and owner_phone required")
+    posts = load_seva()
+    bookings = load_bookings()
+    booking = None
+    booking_idx = -1
+    for i,b in enumerate(bookings):
+        if b.get('id')==booking_id:
+            booking=b
+            booking_idx=i
+            break
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.get('status') != 'denied':
+        raise HTTPException(status_code=400, detail=f"Only denied bookings can be reopened, current: {booking.get('status')}")
+    post = None
+    post_idx = -1
+    for i,p in enumerate(posts):
+        if p.get('id')==booking.get('post_id'):
+            post=p
+            post_idx=i
+            break
+    if not post:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    if post.get('phone')!=owner_phone:
+        raise HTTPException(status_code=403, detail="Only ride owner can allow again")
+    # Check seats still available
+    pending_booked = sum(b.get('seats_booked',0) for b in post.get('bookings',[]) if b.get('status')=='pending')
+    available = post.get('seats_total', post.get('seats_left',0)) - post.get('seats_booked',0) - pending_booked
+    if available < booking.get('seats_booked',1):
+        raise HTTPException(status_code=400, detail=f"Only {available} seats left, cannot reopen {booking.get('seats_booked')} seats")
+    booking['status']='pending'
+    booking['reopened_at']=datetime.now().isoformat()
+    booking.pop('denied_at', None)
+    booking.pop('deny_reason', None)
+    bookings[booking_idx]=booking
+    save_bookings(bookings)
+    for pb in post.get('bookings',[]):
+        if pb.get('id')==booking_id:
+            pb['status']='pending'
+            pb['reopened_at']=booking['reopened_at']
+            pb.pop('denied_at', None)
+            pb.pop('deny_reason', None)
+            break
+    post['seats_pending'] = post.get('seats_pending',0) + booking.get('seats_booked',1)
+    posts[post_idx]=post
+    save_seva(posts)
+    wa_text = f"Hi {booking.get('name')}, good news! Your denied request for {post.get('from_source')} to {post.get('to_destination')} on {post.get('date')} {post.get('time')} has been REOPENED by Seva Saathi {post.get('name')} 🙏
+
+Your request is now pending again. You will get confirmation soon. Sorry for earlier denial."
+    return {"message": f"Reopened booking of {booking.get('name')} - now pending again", "booking": booking, "post": post, "whatsapp_text": wa_text}
+
+
+@router.post("/ride/mark-full")
+async def mark_ride_full(payload: dict):
+    """Mohan marks ride as full after 1 seat booked - no more requests"""
+    post_id = payload.get("post_id","").strip() or payload.get("id","").strip()
+    owner_phone = payload.get("owner_phone","").strip() or payload.get("phone","").strip()
+    reason = payload.get("reason","").strip() or "Marked full by owner - no more seats"
+    if not post_id or not owner_phone:
+        raise HTTPException(status_code=400, detail="post_id and owner_phone required")
+    posts = load_seva()
+    bookings = load_bookings()
+    post = None
+    post_idx = -1
+    for i,p in enumerate(posts):
+        if p.get('id')==post_id:
+            post=p
+            post_idx=i
+            break
+    if not post:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    if post.get('phone')!=owner_phone:
+        raise HTTPException(status_code=403, detail="Only ride owner can mark full")
+    if post.get('status')=='full' or post.get('status')=='cancelled':
+        raise HTTPException(status_code=400, detail=f"Ride already {post.get('status')}")
+    # Save original seats_left before marking full
+    if 'original_seats_left' not in post:
+        post['original_seats_left'] = post.get('seats_left', 0)
+        post['original_seats_total'] = post.get('seats_total', 0)
+    # Deny all pending bookings
+    denied_count = 0
+    for b in bookings:
+        if b.get('post_id')==post_id and b.get('status')=='pending':
+            b['status']='denied'
+            b['denied_at']=datetime.now().isoformat()
+            b['deny_reason']=reason
+            b['denied_by']='owner_mark_full'
+            denied_count+=1
+    save_bookings(bookings)
+    for pb in post.get('bookings',[]):
+        if pb.get('status')=='pending':
+            pb['status']='denied'
+            pb['denied_at']=datetime.now().isoformat()
+            pb['deny_reason']=reason
+    post['status']='full'
+    post['seats_left']=0
+    post['seats']='Car full - Closed by owner'
+    post['owner_closed']=True
+    post['closed_at']=datetime.now().isoformat()
+    post['close_reason']=reason
+    post['seats_pending']=0
+    posts[post_idx]=post
+    save_seva(posts)
+    wa_text = f"Ride {post.get('from_source')} to {post.get('to_destination')} marked FULL by owner. {denied_count} pending denied. {post.get('seats_booked',0)} confirmed still going."
+    return {"message": f"Marked as FULL - {post.get('seats_booked',0)} confirmed, {denied_count} pending denied", "post": post, "denied_count": denied_count, "whatsapp_text": wa_text}
+
+@router.post("/ride/mark-open")
+async def mark_ride_open(payload: dict):
+    """Mohan reopens a full ride"""
+    post_id = payload.get("post_id","").strip() or payload.get("id","").strip()
+    owner_phone = payload.get("owner_phone","").strip() or payload.get("phone","").strip()
+    if not post_id or not owner_phone:
+        raise HTTPException(status_code=400, detail="post_id and owner_phone required")
+    posts = load_seva()
+    post = None
+    post_idx = -1
+    for i,p in enumerate(posts):
+        if p.get('id')==post_id:
+            post=p
+            post_idx=i
+            break
+    if not post:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    if post.get('phone')!=owner_phone:
+        raise HTTPException(status_code=403, detail="Only ride owner can reopen")
+    if post.get('status')!='full':
+        raise HTTPException(status_code=400, detail=f"Ride not full, current: {post.get('status')}")
+    # Restore seats
+    original_left = post.get('original_seats_left', post.get('seats_total',4) - post.get('seats_booked',0))
+    post['seats_left']=original_left
+    post['status']='open'
+    post['seats']=f"{original_left} seats"
+    post['owner_closed']=False
+    post.pop('closed_at', None)
+    post.pop('close_reason', None)
+    posts[post_idx]=post
+    save_seva(posts)
+    return {"message": f"Ride reopened - {original_left} seats available again", "post": post}
+
+
 @router.post("/delete")
 async def delete_seva(payload: dict):
-    post_id = payload.get("id","").strip()
+    """Mohan deletes car pool ride - only if no active bookings or cancelled"""
+    post_id = payload.get("id","").strip() or payload.get("post_id","").strip()
+    phone = payload.get("phone","").strip() or payload.get("owner_phone","").strip()
+    force = payload.get("force", False)
     if not post_id:
-        raise HTTPException(status_code=400, detail="id required")
+        raise HTTPException(status_code=400, detail="id/post_id required")
     posts = load_seva()
-    remaining = [p for p in posts if p.get('id') != post_id]
-    if len(remaining) == len(posts):
+    post = None
+    for i,p in enumerate(posts):
+        if p.get('id')==post_id:
+            post=p
+            break
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found")
+    if phone and post.get('phone') != phone:
+        raise HTTPException(status_code=403, detail="Only owner can delete ride")
+    active = [b for b in post.get('bookings',[]) if b.get('status') in ('pending','confirmed')]
+    if active and not force:
+        raise HTTPException(status_code=400, detail=f"Cannot delete: {len(active)} active booking(s) - cancel all bookings first")
+    remaining = [p for p in posts if p.get('id') != post_id]
     save_seva(remaining)
-    return {"message": "Deleted"}
+    bookings = load_bookings()
+    for b in bookings:
+        if b.get('post_id')==post_id and b.get('status') in ('pending','confirmed','denied'):
+            b['status']='ride_deleted'
+            b['deleted_at']=datetime.now().isoformat()
+    save_bookings(bookings)
+    return {"message": "Ride deleted successfully", "deleted_id": post_id}

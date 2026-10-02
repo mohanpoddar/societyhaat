@@ -210,6 +210,7 @@ textarea{resize:vertical;min-height:60px}
 <!-- Car Pool - source destination separate -->
 <div id="carPoolFields" style="display:none;background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:10px;margin-top:10px">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><p style="font-size:10px;font-weight:700">🚗 Car Pool / Share Auto</p><button type="button" onclick="openCarModal()" style="font-size:8px;background:white;border:1px solid #e2e8f0;padding:3px 6px;border-radius:6px;cursor:pointer">🚗 My Cars</button></div>
+<div id="carSelector" style="display:none;background:white;border:1px solid #bbf7d0;border-radius:8px;padding:8px;margin-bottom:8px"><label style="font-size:8px;font-weight:700;margin:0">Choose Car for this Ride:</label><select id="carSelectorDropdown" onchange="onCarSelectorChange()" style="width:100%;margin-top:4px;background:white;padding:6px;border-radius:6px;font-size:10px"></select><p style="font-size:7px;color:#16a34a;margin-top:4px">✓ You have multiple cars - select which car you will use</p></div>
 <div id="carAutoFillInfo" style="display:none;background:white;border:1px solid #bbf7d0;border-radius:8px;padding:8px;margin-bottom:8px"><p style="font-size:9px;color:#166534;font-weight:700">✓ Car auto-filled from profile:</p><p id="carAutoFillText" style="font-size:10px;margin-top:2px"></p></div>
 <div id="noCarWarning" style="display:none;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px;margin-bottom:8px;text-align:center"><p style="font-size:9px;color:#991b1b">⚠️ No car added yet. Add car first for car pooling</p><button type="button" onclick="openCarModal()" style="margin-top:4px;padding:6px 10px;background:#16a34a;color:white;border:none;border-radius:6px;font-size:10px;font-weight:700">+ Add Car (Make, Type, Seats)</button></div>
 <div style="display:flex;gap:6px;align-items:center">
@@ -574,6 +575,7 @@ async function loadSeva(){
    const hasDenied = !!myDenied;
    const pendingBookings = bookings.filter(b=>b.status==='pending');
    const confirmedBookings = bookings.filter(b=>b.status==='confirmed');
+   const deniedBookings = bookings.filter(b=>b.status==='denied');
    
    let statusBadges = '<span style="font-size:8px;color:#94a3b8">'+(p.date||'')+' '+(p.time||'')+'</span>';
    if(isFull) statusBadges += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">FULL</span>';
@@ -621,11 +623,18 @@ async function loadSeva(){
      }
      carInfo += '</div>';
     }
+    if(isOwner && deniedBookings.length){
+     carInfo += '<div style="margin-top:6px;background:#fee2e2;border:1px dashed #fecaca;border-radius:8px;padding:6px"><p style="font-size:8px;font-weight:700;color:#991b1b">❌ '+deniedBookings.length+' Denied Request(s):</p>';
+     for(let b of deniedBookings){
+       carInfo += '<div style="display:flex;justify-content:space-between;align-items:center;background:white;border:1px solid #fecaca;border-radius:8px;padding:6px;margin-top:4px"><div><b style="font-size:9px">👤 '+b.name+' • '+b.flat+'</b><p style="font-size:7px;color:#64748b">📱 '+b.phone+' • 💺 '+b.seats_booked+' • Reason: '+(b.deny_reason||'N/A')+'</p></div><div style="display:flex;gap:4px"><button onclick="undoDenyBooking(\''+p.id+'\',\''+b.id+'\')" style="font-size:7px;background:#16a34a;color:white;padding:4px 8px;border-radius:20px;border:none;font-weight:700">↩ Allow Again</button></div></div>';
+     }
+     carInfo += '</div>';
+    }
     if(hasPending){
      carInfo += '<div style="margin-top:6px;background:#fef3c7;border:1px dashed #fde68a;border-radius:8px;padding:6px"><p style="font-size:9px;font-weight:700;color:#92400e">⏳ Your request is pending approval from your neighbor</p><p style="font-size:8px;color:#64748b">Seva Saathi '+p.name+' will accept/deny. You will be notified via WhatsApp. Mobile hidden until accepted.</p></div>';
     }
     if(hasDenied){
-     carInfo += '<div style="margin-top:6px;background:#fee2e2;border:1px dashed #fecaca;border-radius:8px;padding:6px"><p style="font-size:9px;font-weight:700;color:#991b1b">❌ Your request was not accepted</p><p style="font-size:8px;color:#64748b">'+(myDenied.deny_reason||'Try another ride')+'</p></div>';
+     carInfo += '<div style="margin-top:6px;background:#fee2e2;border:1px dashed #fecaca;border-radius:8px;padding:6px"><p style="font-size:9px;font-weight:700;color:#991b1b">❌ Your request was not accepted</p><p style="font-size:8px;color:#64748b">'+(myDenied.deny_reason||'Try another ride')+'</p><button onclick="rebookAfterDenied(\''+p.id+'\')" style="margin-top:6px;font-size:8px;background:#16a34a;color:white;padding:5px 10px;border-radius:20px;border:none;font-weight:700">🔄 Request Again / Rebook</button><p style="font-size:7px;color:#64748b;margin-top:4px">You can book again or owner can Allow Again</p></div>';
     }
    } else {
     carInfo += '<p style="font-size:8px;color:#94a3b8">'+(p.from_to || '')+'</p>';
@@ -634,7 +643,10 @@ async function loadSeva(){
    let actionBtn = '';
    if(isCarPool){
     if(isOwner){
-     actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:9px;background:#e0f2fe;color:#0369a1;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #bae6fd">Your Ride • '+confirmedBookings.length+' confirmed '+(pendingBookings.length?'/ '+pendingBookings.length+' pending':'')+(isFull?' • FULL':'')+'</span>'+(confirmedBookings.length||pendingBookings.length?'<button onclick="cancelEntireRide(\''+p.id+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🚫 Cancel Ride & Notify All</button>':'')+'</div>';
+     const hasActiveBookings = confirmedBookings.length>0 || pendingBookings.length>0;
+     const isCancelled = p.status==='cancelled';
+     const isOwnerClosed = p.owner_closed || p.status==='full';
+     actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:9px;background:#e0f2fe;color:#0369a1;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #bae6fd">Your Ride • '+confirmedBookings.length+' confirmed '+(pendingBookings.length?'/ '+pendingBookings.length+' pending':'')+(isFull?' • FULL':'')+(isCancelled?' • CANCELLED':'')+(isOwnerClosed && !isCancelled?' • CLOSED':'')+'</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">'+(isOwnerClosed ? '<button onclick="markRideOpen(\''+p.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔓 Reopen Ride</button>' : '<button onclick="markRideFull(\''+p.id+'\')" style="font-size:8px;background:#f59e0b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔒 Mark Full - Close Booking</button>')+'<button onclick="cancelEntireRide(\''+p.id+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🚫 Cancel All & Notify</button><button onclick="deleteRidePost(\''+p.id+'\')" style="font-size:8px;background:#1e293b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🗑 Delete Ride</button></div></div>';
     } else if(hasBooked){
      const myConfBooking = myBookings.find(b=>b.status==='confirmed');
      const confId = myConfBooking ? myConfBooking.id : '';
@@ -646,7 +658,7 @@ async function loadSeva(){
      const pendId = myPendBooking ? myPendBooking.id : '';
      actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:9px;background:#fef3c7;color:#92400e;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #fde68a">Pending Approval ⏳</span><button onclick="cancelMyBooking(\''+p.id+'\',\''+pendId+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:5px 8px;border-radius:20px;border:none;font-weight:700">Cancel Request ❌</button></div>';
     } else if(hasDenied){
-     actionBtn = '<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">Denied ❌</span>';
+     actionBtn = '<div style="display:flex;gap:4px"><span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">Denied ❌</span><button onclick="rebookAfterDenied(\''+p.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔄 Rebook</button></div>';
     } else if(isFull){
      actionBtn = '<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">Full • '+confirmedBookings.length+' booked</span>';
     } else {
@@ -664,8 +676,6 @@ async function loadSeva(){
   feed.innerHTML = '<div class="empty"><b>🤝</b>Error: '+e.message+'<br>No seva in '+selectedSociety.toUpperCase()+' yet</div>';
  }
 }
-
-
 
 
 
@@ -720,10 +730,17 @@ async function submitPost(){
   payload.seats = seatsVal;
   payload.price = priceVal;
   payload.when = `${dateVal} ${timeVal} • ${seatsVal} ${priceVal ? '• Rs '+priceVal : ''}`.trim();
-  // Include car from profile - ALWAYS from verifiedUser, not stale form
+  // Include car from profile - use selected car if multiple, else first
+  let selectedCarId = localStorage.getItem('selectedCarId');
   if(verified.cars && verified.cars.length){ 
-   payload.car = verified.cars[0]; 
-   console.log('Using car from verifiedUser', payload.car);
+   let chosenCar = verified.cars[0];
+   if(selectedCarId){
+     const found = verified.cars.find(c=>c.id===selectedCarId);
+     if(found) chosenCar = found;
+   }
+   payload.car = chosenCar; 
+   payload.car_id = chosenCar.id;
+   console.log('Using car from verifiedUser (selected)', payload.car);
   } else {
    // Try fetch latest from backend to avoid undefined
    try{
@@ -871,6 +888,7 @@ function onCarMakeChange(){
 async function saveCar(){
  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
  if(!verified.phone){ alert('Login first'); return; }
+ const editingCarId = localStorage.getItem('editingCarId');
  const makeSel = document.getElementById('carMake').value;
  const makeCustom = document.getElementById('carMakeCustom').value.trim();
  const make = makeSel==='Other' ? makeCustom : makeSel;
@@ -883,6 +901,18 @@ async function saveCar(){
  if(!make || !model){ document.getElementById('carMsg').innerHTML='<div style="background:#fee2e2;color:#991b1b;padding:6px;border-radius:6px;font-size:10px">Enter Make and Model</div>'; return; }
  const btn = document.getElementById('saveCarBtn'); btn.textContent='Saving...'; btn.disabled=true;
  try{
+  // If editing, use update-car endpoint
+  if(editingCarId){
+    const res = await fetch(apiBase+'/api/auth/update-car',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone: verified.phone, society_id: verified.society_id || selectedSociety, car_id: editingCarId, make, model, type, seats, color, number, ac})});
+    const data = await res.json(); if(!res.ok) throw new Error(data.detail);
+    verified.cars = data.cars;
+    localStorage.setItem('verifiedUser', JSON.stringify(verified));
+    localStorage.removeItem('editingCarId');
+    btn.textContent='Save Car Profile';
+    document.getElementById('carMsg').innerHTML='<div style="background:#dcfce7;color:#166534;padding:6px;border-radius:6px;font-size:10px">✅ Updated: '+data.car.make+' '+data.car.model+'</div>';
+    loadExistingCars(); updateCarAutoFill();
+    return;
+  }
   const res = await fetch(apiBase+'/api/auth/add-car',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone: verified.phone, society_id: verified.society_id || selectedSociety, make, model, type, seats, color, number, ac})});
   const data = await res.json(); if(!res.ok) throw new Error(data.detail);
   if(!verified.cars) verified.cars = []; const idx = verified.cars.findIndex(c=>c.make===make && c.model===model); if(idx>=0) verified.cars[idx]=data.car; else verified.cars.push(data.car);
@@ -893,20 +923,153 @@ async function saveCar(){
   if(!verified.cars) verified.cars=[]; const car = {make, model, type, seats, color, number, ac, id: Date.now().toString()}; const idx = verified.cars.findIndex(c=>c.make===make && c.model===model); if(idx>=0) verified.cars[idx]=car; else verified.cars.push(car); localStorage.setItem('verifiedUser', JSON.stringify(verified));
   document.getElementById('carMsg').innerHTML='<div style="background:#fef3c7;color:#92400e;padding:6px;border-radius:6px;font-size:10px">Offline, saved locally: '+make+' '+model+'</div>';
   loadExistingCars(); updateCarAutoFill();
- }finally{ btn.textContent='Save Car Profile'; btn.disabled=false; }
+ }finally{ if(!localStorage.getItem('editingCarId')) btn.textContent='Save Car Profile'; btn.disabled=false; }
 }
 function loadExistingCars(){
  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}'); const cars = verified.cars || []; const el = document.getElementById('existingCars');
  if(!cars.length){ el.innerHTML='<p style="font-size:9px;color:#94a3b8;text-align:center">No cars yet - Add your car to start pooling</p>'; return; }
- el.innerHTML = '<p style="font-size:9px;font-weight:700;margin-bottom:4px">Your Cars:</p>' + cars.map(c=>'<div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center"><div><b style="font-size:11px">'+c.make+' '+c.model+'</b><p style="font-size:8px;color:#64748b">'+c.type+' • '+c.seats+' • '+(c.color||'')+' '+(c.ac?'• AC':'')+' '+(c.number?'• ..'+c.number:'')+'</p></div><span style="font-size:8px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:10px">Default</span></div>').join('');
+ el.innerHTML = '<p style="font-size:9px;font-weight:700;margin-bottom:4px">Your Cars ('+cars.length+'):</p>' + cars.map((c, idx)=>'<div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:center"><div><b style="font-size:11px">🚗 '+c.make+' '+c.model+'</b><p style="font-size:8px;color:#64748b">'+c.type+' • '+c.seats+' • '+(c.color||'')+' '+(c.ac?'• AC':'Non-AC')+' '+(c.number?'• '+c.number:'')+'</p></div><span style="font-size:7px;background:#e0f2fe;color:#0369a1;padding:3px 6px;border-radius:10px">'+(idx===0?'Default':'Car '+(idx+1))+'</span></div><div style="display:flex;gap:6px;margin-top:8px"><button onclick="editCar(\''+c.id+'\')" style="flex:1;font-size:8px;background:#e0f2fe;color:#0369a1;padding:6px;border-radius:6px;border:1px solid #bae6fd;font-weight:700">✎ Edit</button><button onclick="selectCarForPool(\''+c.id+'\')" style="flex:1;font-size:8px;background:#dcfce7;color:#166534;padding:6px;border-radius:6px;border:1px solid #bbf7d0;font-weight:700">✓ Use for Pool</button><button onclick="deleteCar(\''+c.id+'\')" style="flex:1;font-size:8px;background:#fee2e2;color:#991b1b;padding:6px;border-radius:6px;border:1px solid #fecaca;font-weight:700">🗑 Delete</button></div></div>').join('');
+ // Also update car selector in pool form
+ updateCarSelector();
 }
+
+function editCar(carId){
+ const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+ const car = (verified.cars||[]).find(c=>c.id===carId);
+ if(!car){ alert('Car not found'); return; }
+ document.getElementById('carMake').value = car.make.includes('Suzuki')||car.make.includes('Maruti')||['Tata','Hyundai','Honda','Toyota','Mahindra','Kia','MG'].some(m=>car.make.includes(m)) ? car.make : 'Other';
+ if(document.getElementById('carMake').value==='Other') document.getElementById('carMakeCustom').value = car.make;
+ document.getElementById('carMakeCustom').style.display = document.getElementById('carMake').value==='Other' ? 'block' : 'none';
+ document.getElementById('carModel').value = car.model;
+ document.getElementById('carType').value = car.type;
+ document.getElementById('carSeats').value = car.seats;
+ document.getElementById('carColor').value = car.color;
+ document.getElementById('carNumber').value = car.number;
+ document.getElementById('carAC').checked = car.ac;
+ document.getElementById('carMsg').innerHTML='<div style="background:#e0f2fe;color:#0369a1;padding:6px;border-radius:6px;font-size:9px">✎ Editing: '+car.make+' '+car.model+' - Update fields and Save</div>';
+ // Scroll to form
+ document.getElementById('carMake').scrollIntoView({behavior:'smooth'});
+ // Store editing id
+ localStorage.setItem('editingCarId', carId);
+ document.getElementById('saveCarBtn').textContent='Update Car ✎';
+}
+function selectCarForPool(carId){
+ localStorage.setItem('selectedCarId', carId);
+ localStorage.removeItem('editingCarId');
+ document.getElementById('saveCarBtn').textContent='Save Car Profile';
+ updateCarAutoFill();
+ alert('✅ Selected car for next ride! Now close My Cars and create pool');
+ closeCarModal();
+}
+async function deleteCar(carId){
+ const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+ const car = (verified.cars||[]).find(c=>c.id===carId);
+ if(!car){ alert('Car not found'); return; }
+ if(!confirm('Delete car '+car.make+' '+car.model+'?\n\nThis cannot be undone.')) return;
+ try{
+  const res = await fetch(apiBase+'/api/auth/delete-car',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone: verified.phone, society_id: verified.society_id || selectedSociety, car_id: carId, make: car.make, model: car.model})});
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.detail);
+  // Update local
+  verified.cars = data.cars || verified.cars.filter(c=>c.id!==carId);
+  localStorage.setItem('verifiedUser', JSON.stringify(verified));
+  if(localStorage.getItem('selectedCarId')===carId) localStorage.removeItem('selectedCarId');
+  document.getElementById('carMsg').innerHTML='<div style="background:#dcfce7;color:#166534;padding:6px;border-radius:6px;font-size:9px">✅ Deleted: '+car.make+' '+car.model+'</div>';
+  loadExistingCars();
+  updateCarAutoFill();
+ }catch(e){
+  // Offline delete
+  verified.cars = (verified.cars||[]).filter(c=>c.id!==carId);
+  localStorage.setItem('verifiedUser', JSON.stringify(verified));
+  if(localStorage.getItem('selectedCarId')===carId) localStorage.removeItem('selectedCarId');
+  document.getElementById('carMsg').innerHTML='<div style="background:#fef3c7;color:#92400e;padding:6px;border-radius:6px;font-size:9px">Offline deleted: '+car.make+' '+car.model+'</div>';
+  loadExistingCars();
+  updateCarAutoFill();
+ }
+}
+
+
 function updateCarAutoFill(){
  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}'); const cars = verified.cars || []; const info = document.getElementById('carAutoFillInfo'); const warn = document.getElementById('noCarWarning'); const text = document.getElementById('carAutoFillText');
- if(!cars.length){ if(info) info.style.display='none'; if(warn) warn.style.display='block'; return; }
- if(warn) warn.style.display='none'; if(info) info.style.display='block'; const car = cars[0]; if(text) text.textContent = car.make+' '+car.model+' • '+car.type+' • '+car.seats+' • '+(car.color||'')+' '+(car.ac?'AC':'Non-AC');
+ const selector = document.getElementById('carSelector');
+ if(!cars.length){ if(info) info.style.display='none'; if(warn) warn.style.display='block'; if(selector) selector.style.display='none'; return; }
+ if(warn) warn.style.display='none'; if(info) info.style.display='block'; 
+ // Use selected car or first car
+ let selectedCarId = localStorage.getItem('selectedCarId');
+ let car = cars[0];
+ if(selectedCarId){
+   const found = cars.find(c=>c.id===selectedCarId);
+   if(found) car = found;
+ }
+ if(text) text.textContent = car.make+' '+car.model+' • '+car.type+' • '+car.seats+' • '+(car.color||'')+' '+(car.ac?'AC':'Non-AC')+' (Selected)';
  const desc = document.getElementById('sevaDesc'); if(desc && !desc.value){ desc.value = car.make+' '+car.model+' ('+car.type+', '+car.seats+', '+(car.color||'')+' '+(car.ac?'AC':'')+'). Comfortable ride, well maintained.'; }
- const seatsSel = document.getElementById('sevaSeats'); if(seatsSel){ const carSeatsNum = parseInt(car.seats) || 5; const avail = Math.max(1, carSeatsNum - 1); for(let opt of seatsSel.options){ if(opt.value.includes(avail+' seat')){ seatsSel.value = opt.value; break; } } }
+ const seatsSel = document.getElementById('sevaSeats'); 
+ if(seatsSel){ 
+   const carSeatsNum = parseInt(car.seats) || 5; 
+   const maxAvail = Math.max(1, carSeatsNum - 1); // Driver needs 1 seat, rest available
+   // Dynamically generate options based on car capacity
+   let options = '';
+   for(let i=1; i<=maxAvail; i++){
+     options += '<option value="'+i+' seat'+(i>1?'s':'')+'">'+i+' seat'+(i>1?'s':'')+'</option>';
+   }
+   options += '<option value="Car full">Car full</option>';
+   const currentVal = seatsSel.value;
+   seatsSel.innerHTML = options;
+   // Try to restore previous selection if still valid, else select max
+   let found = false;
+   for(let opt of seatsSel.options){
+     if(opt.value===currentVal){ seatsSel.value=currentVal; found=true; break; }
+   }
+   if(!found){
+     // Select max available by default (e.g., 4 for 5-seater, 6 for 7-seater)
+     seatsSel.value = maxAvail+' seat'+(maxAvail>1?'s':'');
+   }
+ }
+ updateCarSelector();
 }
+function updateCarSelector(){
+ const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}'); const cars = verified.cars || [];
+ const selector = document.getElementById('carSelector');
+ const dropdown = document.getElementById('carSelectorDropdown');
+ if(!selector || !dropdown) return;
+ if(cars.length <=1){ selector.style.display='none'; return; }
+ selector.style.display='block';
+ const selectedId = localStorage.getItem('selectedCarId') || (cars[0] && cars[0].id);
+ dropdown.innerHTML = cars.map(c=>'<option value="'+c.id+'" '+(c.id===selectedId?'selected':'')+'>'+c.make+' '+c.model+' • '+c.seats+' • '+(c.color||'')+'</option>').join('');
+}
+function onCarSelectorChange(){
+ const dropdown = document.getElementById('carSelectorDropdown');
+ const selectedId = dropdown.value;
+ localStorage.setItem('selectedCarId', selectedId);
+ // Force update seats dropdown based on new car
+ const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+ const car = (verified.cars||[]).find(c=>c.id===selectedId);
+ if(car){
+   document.getElementById('carAutoFillText').textContent = car.make+' '+car.model+' • '+car.type+' • '+car.seats+' • '+(car.color||'')+' '+(car.ac?'AC':'Non-AC')+' (Selected)';
+   // Update seats available dropdown dynamically
+   const seatsSel = document.getElementById('sevaSeats');
+   if(seatsSel){
+     const carSeatsNum = parseInt(car.seats) || 5;
+     const maxAvail = Math.max(1, carSeatsNum - 1);
+     let options = '';
+     for(let i=1; i<=maxAvail; i++){
+       options += '<option value="'+i+' seat'+(i>1?'s':'')+'">'+i+' seat'+(i>1?'s':'')+'</option>';
+     }
+     options += '<option value="Car full">Car full</option>';
+     seatsSel.innerHTML = options;
+     seatsSel.value = maxAvail+' seat'+(maxAvail>1?'s':'');
+     console.log('Updated seats for car '+car.make+' '+car.model+' : max '+maxAvail);
+   }
+   // Update description if empty
+   const desc = document.getElementById('sevaDesc');
+   if(desc){
+     desc.value = car.make+' '+car.model+' ('+car.type+', '+car.seats+', '+(car.color||'')+' '+(car.ac?'AC':'')+'). Comfortable ride, well maintained. Tata Creta 7 seater, spacious.';
+   }
+ }
+ updateCarAutoFill();
+}
+
+
 
 
 function clearAllStorage(){
@@ -1111,6 +1274,79 @@ async function cancelEntireRide(postId){
 }
 
 
+
+
+
+async function markRideFull(postId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  const reason = prompt('Mark ride as FULL - no more bookings allowed?\n\nEnter reason (will be shown to pending users):', 'Car full - I have enough passengers, closing booking');
+  if(reason===null) return; // Cancelled prompt
+  if(!confirm('🔒 Mark this ride as FULL?\n\n• No new bookings allowed\n• All pending requests will be DENIED\n• Confirmed bookings will still go\n\nConfirm?')) return;
+  try{
+    const res = await fetch(apiBase+'/api/seva/ride/mark-full',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post_id: postId, owner_phone: verified.phone, reason: reason})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    alert('✅ '+data.message+'\n\nRide is now FULL - no one can book anymore. You can reopen anytime with Reopen Ride button.');
+    loadSeva();
+  }catch(e){ alert('❌ '+e.message); }
+}
+async function markRideOpen(postId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  if(!confirm('🔓 Reopen this FULL ride?\n\nSeats will become available again for booking.\n\nConfirm reopen?')) return;
+  try{
+    const res = await fetch(apiBase+'/api/seva/ride/mark-open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post_id: postId, owner_phone: verified.phone})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    alert('✅ '+data.message+'\n\nRide is now OPEN again - people can book!');
+    loadSeva();
+  }catch(e){ alert('❌ '+e.message); }
+}
+
+async function deleteRidePost(postId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  if(!confirm('🗑 Delete this car pool ride?\n\nThis will remove it from feed.\nIf there are active bookings, cancel them first.\n\nConfirm delete?')) return;
+  try{
+    const res = await fetch(apiBase+'/api/seva/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id: postId, phone: verified.phone, owner_phone: verified.phone})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    alert('✅ '+data.message);
+    loadSeva();
+  }catch(e){
+    if(e.message.includes('active booking')){
+      if(confirm(e.message+'\n\nForce delete anyway? This will mark bookings as ride_deleted.')){
+        try{
+          const res2 = await fetch(apiBase+'/api/seva/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id: postId, phone: verified.phone, owner_phone: verified.phone, force: true})});
+          const data2 = await res2.json();
+          if(!res2.ok) throw new Error(data2.detail);
+          alert('✅ '+data2.message);
+          loadSeva();
+        }catch(e2){ alert('❌ '+e2.message); }
+      }
+    } else {
+      alert('❌ '+e.message);
+    }
+  }
+}
+async function undoDenyBooking(postId, bookingId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  if(!confirm('Reopen this denied request?\n\nPiyush will be moved back to pending and can be accepted.\nWhatsApp will notify him.')) return;
+  try{
+    const res = await fetch(apiBase+'/api/seva/booking/undo-deny',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id: bookingId, owner_phone: verified.phone})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    alert('✅ '+data.message+'\n\nWhatsApp will open to notify Piyush');
+    window.open('https://wa.me/91'+data.booking.phone+'?text='+encodeURIComponent(data.whatsapp_text),'_blank');
+    loadSeva();
+  }catch(e){ alert('❌ '+e.message); }
+}
+async function rebookAfterDenied(postId){
+  // Piyush re-books after being denied
+  openBookingModal(postId);
+}
 
 async function bookMoreSeats(postId, seatsLeft, currentSeats){
   const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
