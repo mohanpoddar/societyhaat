@@ -678,7 +678,7 @@ function editUserInfo(){
  document.getElementById('userPhone').style.background = 'white';
  document.getElementById('userName').focus();
 }
-function closePostModal(){document.getElementById('postModal').classList.remove('show')}
+function closePostModal(){document.getElementById('postModal').classList.remove('show'); if(editingPostId){ cancelEditMode(); } }
 
 function selectPostType(type){
  postType = type;
@@ -863,7 +863,7 @@ async function loadSeva(){
      const hasActiveBookings = confirmedBookings.length>0 || pendingBookings.length>0;
      const isCancelled = p.status==='cancelled';
      const isOwnerClosed = p.owner_closed || p.status==='full';
-     actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:9px;background:#e0f2fe;color:#0369a1;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #bae6fd">Your Ride • '+confirmedBookings.length+' confirmed '+(pendingBookings.length?'/ '+pendingBookings.length+' pending':'')+(isFull?' • FULL':'')+(isCancelled?' • CANCELLED':'')+(isOwnerClosed && !isCancelled?' • CLOSED':'')+'</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">'+(isOwnerClosed ? '<button onclick="markRideOpen(\''+p.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔓 Reopen Ride</button>' : '<button onclick="markRideFull(\''+p.id+'\')" style="font-size:8px;background:#f59e0b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔒 Mark Full - Close Booking</button>')+'<button onclick="cancelEntireRide(\''+p.id+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🚫 Cancel All & Notify</button><button onclick="deleteRidePost(\''+p.id+'\')" style="font-size:8px;background:#1e293b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🗑 Delete Ride</button></div></div>';
+     actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:9px;background:#e0f2fe;color:#0369a1;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #bae6fd">Your Ride • '+confirmedBookings.length+' confirmed '+(pendingBookings.length?'/ '+pendingBookings.length+' pending':'')+(isFull?' • FULL':'')+(isCancelled?' • CANCELLED':'')+(isOwnerClosed && !isCancelled?' • CLOSED':'')+(p.edited?' • EDITED':'')+'</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button onclick="editSevaPost(\''+p.id+'\')" style="font-size:8px;background:#3b82f6;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">✎ Edit Ride</button>'+(isOwnerClosed ? '<button onclick="markRideOpen(\''+p.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔓 Reopen Ride</button>' : '<button onclick="markRideFull(\''+p.id+'\')" style="font-size:8px;background:#f59e0b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔒 Mark Full - Close Booking</button>')+'<button onclick="cancelEntireRide(\''+p.id+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🚫 Cancel All & Notify</button><button onclick="deleteRidePost(\''+p.id+'\')" style="font-size:8px;background:#1e293b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🗑 Delete Ride</button></div></div>';
     } else if(hasBooked){
      const myConfBooking = myBookings.find(b=>b.status==='confirmed');
      const confId = myConfBooking ? myConfBooking.id : '';
@@ -896,7 +896,108 @@ async function loadSeva(){
 
 
 
+
+let editingPostId = null;
+
+async function editSevaPost(postId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  try{
+    const res = await fetch(apiBase+'/api/seva/list?society_id='+selectedSociety);
+    const data = await res.json();
+    const post = (data.posts||[]).find(p=>p.id===postId);
+    if(!post){ alert('Ride not found'); return; }
+    if(post.phone!==verified.phone){ alert('Only owner can edit'); return; }
+    if(post.status==='cancelled'){ alert('Cannot edit cancelled ride'); return; }
+    
+    // Store editing ID
+    editingPostId = postId;
+    
+    // Open post modal in Seva tab
+    postType = 'seva';
+    document.getElementById('postModal').classList.add('show');
+    selectPostType('seva');
+    
+    // === FIX: Fill Your Info - Auto from registration (was blank) ===
+    const v = verified;
+    if(v){
+      document.getElementById('userName').value = v.name || post.name || '';
+      document.getElementById('userFlat').value = v.flat || post.flat || '';
+      document.getElementById('userPhone').value = v.phone || post.phone || '';
+      document.getElementById('userVerifiedBadge').textContent = '✓ Verified • '+ (v.society_id||selectedSociety).toUpperCase()+' '+v.flat + ' • Editing';
+      document.getElementById('userVerifiedBadge').style.background = '#dbeafe';
+      const autoDiv = document.getElementById('userInfoAuto');
+      if(autoDiv) autoDiv.style.display = 'block';
+      const loginDiv = document.getElementById('userInfoLogin');
+      if(loginDiv) loginDiv.style.display = 'none';
+      document.getElementById('userName').readOnly = true;
+      document.getElementById('userFlat').readOnly = true;
+      document.getElementById('userPhone').readOnly = true;
+    }
+    
+    // Fill form
+    document.getElementById('sevaType').value = post.type || 'Car Pool';
+    onSevaTypeChange();
+    
+    // Fill car pool fields - new searchable inputs
+    document.getElementById('sevaFrom').value = post.from_source || '';
+    document.getElementById('sevaTo').value = post.to_destination || '';
+    document.getElementById('sevaDate').value = post.date || '';
+    document.getElementById('sevaTime').value = post.time || '';
+    document.getElementById('sevaSeats').value = post.seats || '1 seat';
+    document.getElementById('sevaPrice').value = post.price || '';
+    document.getElementById('sevaTitle').value = post.title || '';
+    document.getElementById('sevaDesc').value = post.description || '';
+    
+    // Update button text
+    const submitBtn = document.querySelector('#postModal button[onclick="submitPost()"]');
+    if(submitBtn){
+      submitBtn.textContent = '✎ Update Ride - Save Fee & Changes';
+      submitBtn.style.background = '#3b82f6';
+    }
+    
+    // Show hint
+    const existingHint = document.getElementById('editHint');
+    if(!existingHint){
+      const hint = document.createElement('div');
+      hint.id = 'editHint';
+      hint.style.cssText = 'background:#dbeafe;border:1px solid #93c5fd;border-radius:8px;padding:8px;margin-bottom:10px;font-size:10px;color:#1e40af';
+      hint.innerHTML = '✎ <b>Editing Mode:</b> You are editing your ride <b>'+post.from_source+' → '+post.to_destination+'</b><br>• You can add/change <b>Fee (Price)</b>, Time, Date, From/To, Seats<br>• '+post.seats_booked+' seat(s) already booked - cannot reduce below booked<br>• Pending bookings will get updated fee<br><button onclick="cancelEditMode()" style="font-size:8px;background:white;border:1px solid #93c5fd;padding:2px 6px;border-radius:4px;margin-top:4px">Cancel Edit</button>';
+      const form = document.getElementById('sevaForm');
+      form.insertBefore(hint, form.firstChild);
+    }
+    
+    // Scroll to price field (fee)
+    setTimeout(()=>{ document.getElementById('sevaPrice').focus(); document.getElementById('sevaPrice').scrollIntoView({behavior:'smooth', block:'center'}); }, 300);
+    
+  }catch(e){
+    alert('Failed to load ride for edit: '+e.message);
+  }
+}
+
+function cancelEditMode(){
+  editingPostId = null;
+  const hint = document.getElementById('editHint');
+  if(hint) hint.remove();
+  const submitBtn = document.querySelector('#postModal button[onclick="submitPost()"]');
+  if(submitBtn){
+    submitBtn.textContent = 'Post to Society';
+    submitBtn.style.background = '';
+  }
+  // Clear form
+  document.getElementById('sevaFrom').value='';
+  document.getElementById('sevaTo').value='';
+  document.getElementById('sevaDate').value='';
+  document.getElementById('sevaTime').value='';
+  document.getElementById('sevaPrice').value='';
+  document.getElementById('sevaTitle').value='';
+  document.getElementById('sevaDesc').value='';
+}
+
+
 async function submitPost(){
+ // Check if editing existing ride
+ const isEditing = !!editingPostId;
  // ALWAYS use verifiedUser for identity, not form inputs (form can have stale Piyush data)
  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
  if(!verified.phone){
@@ -924,6 +1025,10 @@ async function submitPost(){
   payload.price = document.getElementById('haatPrice').value;
   if(!payload.title || !payload.description){alert('Title and description required'); return;}
   url = apiBase+'/api/haat/create';
+  if(isEditing){
+    alert('Haat edit not yet supported - only Seva edit');
+    return;
+  }
  } else {
   payload.type = document.getElementById('sevaType').value;
   payload.title = document.getElementById('sevaTitle').value.trim();
@@ -980,19 +1085,52 @@ async function submitPost(){
  }
 
  try{
-  const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  // If editing, use update endpoint
+  let fetchUrl = url;
+  let fetchPayload = payload;
+  if(isEditing){
+    fetchUrl = apiBase+'/api/seva/update';
+    fetchPayload = {
+      id: editingPostId,
+      post_id: editingPostId,
+      phone: phone,
+      owner_phone: phone,
+      title: payload.title,
+      description: payload.description,
+      price: payload.price,
+      date: payload.date,
+      time: payload.time,
+      from_source: payload.from_source,
+      to_destination: payload.to_destination,
+      from_to: payload.from_to,
+      when: payload.when,
+      seats: payload.seats,
+      car: payload.car,
+      car_id: payload.car_id,
+      type: payload.type
+    };
+    console.log('Editing ride', editingPostId, fetchPayload);
+  }
+  const res = await fetch(fetchUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(fetchPayload)});
   const data = await res.json();
   if(!res.ok) throw new Error(data.detail || 'Failed');
   // DO NOT overwrite verifiedUser with incomplete data - keep existing cars etc
-  // Only update society if needed, preserve full verified object
   const existing = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
   localStorage.setItem('verifiedUser', JSON.stringify({...existing, society_id: society_id, name, flat, phone}));
   closePostModal();
-  // Clear forms
+  // Clear forms and reset edit mode
   document.getElementById('haatTitle').value=''; document.getElementById('haatDesc').value=''; document.getElementById('haatPrice').value='';
   document.getElementById('sevaTitle').value=''; document.getElementById('sevaDesc').value='';
+  const wasEditing = !!editingPostId;
+  if(wasEditing){
+    cancelEditMode();
+  }
   loadFeeds();
-  alert('✅ Posted to '+society_id.toUpperCase()+' '+(postType==='haat'?'Haat':'Seva') + ' as ' + name + ' ' + flat);
+  if(wasEditing){
+    alert('✅ Updated! Fee and ride details saved.\n\n'+data.message+'\n\nPrice: Rs '+(fetchPayload.price||'Free')+'\nFrom: '+fetchPayload.from_source+' → '+fetchPayload.to_destination);
+  } else {
+    alert('✅ Posted to '+society_id.toUpperCase()+' '+(postType==='haat'?'Haat':'Seva') + ' as ' + name + ' ' + flat);
+  }
  }catch(e){
   console.error('Post error:', e);
   // If error has message from backend, show it

@@ -665,6 +665,106 @@ async def get_bookings(phone: str = "", post_id: str = ""):
     bookings = sorted(bookings, key=lambda x: x.get('created_at',''), reverse=True)
     return {"bookings": bookings, "count": len(bookings)}
 
+
+@router.post("/update")
+async def update_seva(payload: dict):
+    """Mohan edits his seva/ride after posting - add fee, change time, etc"""
+    post_id = payload.get("id","").strip() or payload.get("post_id","").strip()
+    phone = payload.get("phone","").strip() or payload.get("owner_phone","").strip()
+    if not post_id or not phone:
+        raise HTTPException(status_code=400, detail="id/post_id and phone required")
+    posts = load_seva()
+    post = None
+    post_idx = -1
+    for i,p in enumerate(posts):
+        if p.get('id')==post_id:
+            post=p
+            post_idx=i
+            break
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if post.get('phone') != phone:
+        raise HTTPException(status_code=403, detail="Only owner can edit ride")
+    # Check if cancelled
+    if post.get('status')=='cancelled':
+        raise HTTPException(status_code=400, detail="Cannot edit cancelled ride")
+    
+    # Fields that can be updated
+    # For car pool: title, description, price, date, time, from_source, to_destination, seats (if no bookings), car, car_id
+    # For general seva: title, description, type, from_to, when
+    
+    # Prevent reducing seats below already booked
+    new_seats_str = payload.get("seats","").strip()
+    if new_seats_str:
+        new_total = parse_seats(new_seats_str)
+        booked = post.get('seats_booked',0)
+        if new_total < booked and new_total!=0:
+            raise HTTPException(status_code=400, detail=f"Cannot reduce seats to {new_total} - already {booked} booked. Increase or keep same.")
+        # Update seats_total and seats_left
+        post['seats'] = new_seats_str
+        post['seats_total'] = new_total if new_total!=0 else post.get('seats_total',0)
+        # Recalc left
+        if post.get('status')!='full' and not post.get('owner_closed'):
+            post['seats_left'] = max(0, post['seats_total'] - post.get('seats_booked',0))
+            if post['seats_left']<=0 and post['seats_total']>0:
+                post['status']='full'
+                post['seats']='Car full'
+    
+    if "title" in payload and payload["title"].strip():
+        post['title'] = payload["title"].strip()
+    if "description" in payload and payload["description"].strip():
+        post['description'] = payload["description"].strip()
+    if "price" in payload:
+        # Price can be updated anytime - important for Mohan's fee case
+        post['price'] = str(payload["price"]).strip()
+        # Also update bookings price per seat for pending bookings
+        # (confirmed bookings keep old price, but we update display)
+    if "date" in payload and payload["date"].strip():
+        post['date'] = payload["date"].strip()
+    if "time" in payload and payload["time"].strip():
+        post['time'] = payload["time"].strip()
+    if "from_source" in payload and payload["from_source"].strip():
+        post['from_source'] = payload["from_source"].strip()
+    if "to_destination" in payload and payload["to_destination"].strip():
+        post['to_destination'] = payload["to_destination"].strip()
+    if "from_to" in payload and payload["from_to"].strip():
+        post['from_to'] = payload["from_to"].strip()
+    if "when" in payload and payload["when"].strip():
+        post['when'] = payload["when"].strip()
+    if "car" in payload and payload["car"]:
+        post['car'] = payload["car"]
+    if "car_id" in payload and payload["car_id"].strip():
+        post['car_id'] = payload["car_id"].strip()
+    if "type" in payload and payload["type"].strip():
+        post['type'] = payload["type"].strip()
+    
+    post['updated_at'] = datetime.now().isoformat()
+    post['edited'] = True
+    
+    posts[post_idx]=post
+    save_seva(posts)
+    
+    # If price changed, update pending bookings total_price
+    if "price" in payload:
+        try:
+            bookings = load_bookings()
+            price_per = int(post.get('price') or 0)
+            for b in bookings:
+                if b.get('post_id')==post_id and b.get('status')=='pending':
+                    b['price_per_seat'] = post.get('price','')
+                    b['total_price'] = str(price_per * b.get('seats_booked',1)) if price_per else ""
+            save_bookings(bookings)
+            # Also update post.bookings
+            for pb in post.get('bookings',[]):
+                if pb.get('status')=='pending':
+                    pb['price_per_seat']=post.get('price','')
+                    pb['total_price']=str(price_per * pb.get('seats_booked',1)) if price_per else ""
+        except:
+            pass
+    
+    return {"message": "Ride updated successfully - fee/time/location changed", "post": post}
+
+
 @router.post("/delete")
 async def delete_seva(payload: dict):
     post_id = payload.get("id","").strip() or payload.get("post_id","").strip()
