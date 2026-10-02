@@ -251,8 +251,23 @@ textarea{resize:vertical;min-height:60px}
 <div style="flex:1"><label>Time</label><input id="sevaTime" type="time" style="background:white"></div>
 </div>
 <div style="display:flex;gap:6px;margin-top:8px">
-<div style="flex:1"><label>Seats Available</label><select id="sevaSeats"><option>1 seat</option><option>2 seats</option><option>3 seats</option><option>4 seats</option><option>Car full</option></select></div>
+<div style="flex:1"><label>Seats Available</label><select id="sevaSeats"><option>1 seat</option><option>2 seats</option><option>3 seats</option><option>4 seats</option><option>5 seats</option><option>6 seats</option><option>Car full</option></select></div>
 <div style="flex:1"><label>Price / Contribution (Rs)</label><input id="sevaPrice" type="number" placeholder="Free / 50 / 100"></div>
+</div>
+<div style="display:flex;gap:6px;margin-top:8px;background:white;border:1px solid #fde68a;border-radius:8px;padding:8px">
+<div style="flex:1">
+<label style="margin-top:0">⏰ Booking Cutoff (when booking closes)</label>
+<select id="sevaCutoff" style="background:white;font-size:11px">
+<option value="30" selected>30 min before (Default)</option>
+<option value="45">45 min before</option>
+<option value="60">60 min (1 hour) before</option>
+<option value="75">75 min (1h 15m) before</option>
+<option value="90">90 min (1h 30m) before</option>
+<option value="120">120 min (2 hours) before</option>
+<option value="0">Till ride start time (no cutoff)</option>
+</select>
+<p style="font-size:7px;color:#64748b;margin-top:2px">💡 After cutoff, no new bookings allowed. Pending requests can still be accepted.</p>
+</div>
 </div>
 </div>
 
@@ -795,11 +810,24 @@ async function loadSeva(){
    const deniedBookings = bookings.filter(b=>b.status==='denied');
    
    let statusBadges = '<span style="font-size:8px;color:#94a3b8">'+(p.date||'')+' '+(p.time||'')+'</span>';
-   if(isFull) statusBadges += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">FULL</span>';
+   if(p.status==='completed') statusBadges += '<span style="font-size:8px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:10px">COMPLETED ✅</span>';
+   else if(p.status==='expired') statusBadges += '<span style="font-size:8px;background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:10px">EXPIRED ⚫</span>';
+   else if(p.status==='cancelled') statusBadges += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">CANCELLED 🔴</span>';
+   else if(isFull) statusBadges += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">FULL</span>';
    if(hasPending) statusBadges += '<span style="font-size:8px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:10px">PENDING ⏳</span>';
    if(hasBooked) statusBadges += '<span style="font-size:8px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:10px">BOOKED ✓</span>';
    if(hasDenied) statusBadges += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">DENIED ❌</span>';
    if(isOwner) statusBadges += '<span style="font-size:8px;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:10px">YOUR RIDE</span>';
+   // Completed bookings badges
+   const completedBookings = bookings.filter(b=>b.status==='completed_travelled' || b.status==='passenger_confirmed');
+   const noShowBookings = bookings.filter(b=>b.status==='no_show');
+   if(completedBookings.length) statusBadges += '<span style="font-size:8px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:10px">✅ '+completedBookings.length+' travelled</span>';
+   if(noShowBookings.length) statusBadges += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">⚪ '+noShowBookings.length+' no-show</span>';
+   // Ratings
+   if(p.ratings && p.ratings.length){
+     const avg = (p.ratings.reduce((s,r)=>s+r.rating,0)/p.ratings.length).toFixed(1);
+     statusBadges += '<span style="font-size:8px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:10px">⭐ '+avg+' ('+p.ratings.length+')</span>';
+   }
    
    let carInfo = '';
    if(isCarPool){
@@ -814,7 +842,21 @@ async function loadSeva(){
     if(isFull) carInfo += '<span style="font-size:8px;background:#fee2e2;padding:3px 6px;border-radius:6px">💺 Car full</span>';
     else carInfo += '<span style="font-size:8px;background:#dcfce7;padding:3px 6px;border-radius:6px">💺 '+(p.seats_left!==undefined?p.seats_left+' left':p.seats)+' '+(p.seats_booked?'/ '+p.seats_booked+' booked':'')+'</span>';
     if(p.price) carInfo += '<span style="font-size:8px;background:#fef3c7;padding:3px 6px;border-radius:6px">Rs '+p.price+'/seat</span>';
-    else carInfo += '<span style="font-size:8px;background:#dcfce7;padding:3px 6px;border-radius:6px">Free Pool</span>';
+    const cutoffMins = p.booking_cutoff_minutes !== undefined ? p.booking_cutoff_minutes : 30;
+    const cutoffPassed = p.booking_cutoff_passed;
+    const closesIn = p.booking_closes_in || '';
+    if(cutoffMins===0){
+      carInfo += '<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">⏰ Closes at ride time</span>';
+    } else if(cutoffPassed){
+      carInfo += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:3px 6px;border-radius:6px">🔒 Booking closed (cutoff '+cutoffMins+'m)</span>';
+    } else if(closesIn){
+      carInfo += '<span style="font-size:8px;background:#fef3c7;padding:3px 6px;border-radius:6px">⏰ Closes in '+closesIn+' (cutoff '+cutoffMins+'m)</span>';
+    } else {
+      carInfo += '<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">⏰ Cutoff '+cutoffMins+'m before</span>';
+    }
+    if(!p.price){
+      carInfo += '<span style="font-size:8px;background:#dcfce7;padding:3px 6px;border-radius:6px">Free Pool</span>';
+    }
     if(p.car && p.car.make) carInfo += '<span style="font-size:8px;background:#e0f2fe;color:#0369a1;padding:3px 6px;border-radius:6px">🚗 '+(p.car.make||'')+' '+(p.car.model||'')+(p.car.type ? ' • '+p.car.type : '')+'</span>';
     if(p.car && (p.car.seats || p.car.color)) carInfo += '<span style="font-size:8px;background:#f1f5f9;padding:3px 6px;border-radius:6px">'+(p.car.seats||'')+(p.car.color? ' • '+p.car.color : '')+(p.car.ac?' • AC':'')+'</span>';
     carInfo += '</div>';
@@ -862,20 +904,58 @@ async function loadSeva(){
     if(isOwner){
      const hasActiveBookings = confirmedBookings.length>0 || pendingBookings.length>0;
      const isCancelled = p.status==='cancelled';
+     const isCompleted = p.status==='completed';
+     const isExpired = p.status==='expired';
      const isOwnerClosed = p.owner_closed || p.status==='full';
-     actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:9px;background:#e0f2fe;color:#0369a1;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #bae6fd">Your Ride • '+confirmedBookings.length+' confirmed '+(pendingBookings.length?'/ '+pendingBookings.length+' pending':'')+(isFull?' • FULL':'')+(isCancelled?' • CANCELLED':'')+(isOwnerClosed && !isCancelled?' • CLOSED':'')+(p.edited?' • EDITED':'')+'</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button onclick="editSevaPost(\''+p.id+'\')" style="font-size:8px;background:#3b82f6;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">✎ Edit Ride</button>'+(isOwnerClosed ? '<button onclick="markRideOpen(\''+p.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔓 Reopen Ride</button>' : '<button onclick="markRideFull(\''+p.id+'\')" style="font-size:8px;background:#f59e0b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔒 Mark Full - Close Booking</button>')+'<button onclick="cancelEntireRide(\''+p.id+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🚫 Cancel All & Notify</button><button onclick="deleteRidePost(\''+p.id+'\')" style="font-size:8px;background:#1e293b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🗑 Delete Ride</button></div></div>';
-    } else if(hasBooked){
-     const myConfBooking = myBookings.find(b=>b.status==='confirmed');
+     const canComplete = confirmedBookings.length>0 && !isCancelled && !isCompleted && !isExpired;
+     const rideTimePassed = (()=>{ try{ const rd = new Date(p.date+' '+p.time); return !isNaN(rd) && new Date() > rd; }catch(e){ return false; } })();
+     actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:9px;background:#e0f2fe;color:#0369a1;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #bae6fd">Your Ride • '+confirmedBookings.length+' confirmed '+(pendingBookings.length?'/ '+pendingBookings.length+' pending':'')+(isFull?' • FULL':'')+(isCancelled?' • CANCELLED':'')+(isCompleted?' • COMPLETED ✅':'')+(isExpired?' • EXPIRED ⚫':'')+(isOwnerClosed && !isCancelled && !isCompleted?' • CLOSED':'')+(p.edited?' • EDITED':'')+'</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">';
+     if(isCompleted || isExpired || isCancelled){
+       // Completed ride actions
+       if(isCompleted){
+         actionBtn += '<span style="font-size:8px;background:#dcfce7;color:#166534;padding:5px 8px;border-radius:20px;font-weight:700">✅ Completed • '+(p.completed_count||confirmedBookings.length)+' travelled'+(p.no_show_count?' • '+p.no_show_count+' no-show':'')+'</span>';
+         // Rate passengers
+         (p.bookings||[]).filter(b=>b.status==='completed_travelled' || b.status==='passenger_confirmed').forEach(b=>{
+           actionBtn += '<button onclick="rateRide(\''+p.id+'\',\''+b.phone+'\',\''+b.name.replace(/'/g,"\\'")+'\')" style="font-size:8px;background:#f59e0b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">⭐ Rate '+b.name.split(' ')[0]+'</button>';
+         });
+       }
+       actionBtn += '<button onclick="deleteRidePost(\''+p.id+'\')" style="font-size:8px;background:#1e293b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🗑 Delete History</button>';
+     } else {
+       // Active ride actions
+       actionBtn += '<button onclick="editSevaPost(\''+p.id+'\')" style="font-size:8px;background:#3b82f6;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">✎ Edit Ride</button>';
+       if(canComplete || rideTimePassed){
+         actionBtn += '<button onclick="markTripDone(\''+p.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">✅ Trip Done - Mark Completed</button>';
+       }
+       actionBtn += (isOwnerClosed ? '<button onclick="markRideOpen(\''+p.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔓 Reopen Ride</button>' : '<button onclick="markRideFull(\''+p.id+'\')" style="font-size:8px;background:#f59e0b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔒 Mark Full - Close Booking</button>')+'<button onclick="cancelEntireRide(\''+p.id+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🚫 Cancel All & Notify</button><button onclick="deleteRidePost(\''+p.id+'\')" style="font-size:8px;background:#1e293b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🗑 Delete Ride</button>';
+     }
+     actionBtn += '</div></div>';
+    } else if(hasBooked || myBookings.some(b=>b.status==='completed_travelled' || b.status==='passenger_confirmed' || b.status==='no_show' || b.status==='expired')){
+     const myConfBooking = myBookings.find(b=>['confirmed','completed_travelled','passenger_confirmed','no_show','expired'].includes(b.status));
      const confId = myConfBooking ? myConfBooking.id : '';
      const currentSeats = myConfBooking ? myConfBooking.seats_booked : 1;
-     const canAddMore = seatsLeft > 0;
-     actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700;border:1px solid #bbf7d0">📱 Seva Saathi: '+p.phone+' • You: '+currentSeats+' seat(s) • '+seatsLeft+' left</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><a href="tel:+91'+p.phone+'" style="font-size:9px;background:#16a34a;color:white;padding:6px 10px;border-radius:20px;text-decoration:none;font-weight:700">📞 Call</a><button onclick="openWhatsAppContact(\''+p.id+'\', true)" style="font-size:9px;background:#25D366;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">WhatsApp ✓</button>'+(canAddMore?'<button onclick="bookMoreSeats(\''+p.id+'\', '+seatsLeft+', '+currentSeats+')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">+ Add Seat ('+seatsLeft+' left)</button>':'')+'<button onclick="cancelMyBooking(\''+p.id+'\',\''+confId+'\')" style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;border:none;font-weight:700">Cancel ❌</button></div></div>';
+     const canAddMore = seatsLeft > 0 && myConfBooking && myConfBooking.status==='confirmed';
+     const myStatus = myConfBooking ? myConfBooking.status : '';
+     if(myStatus==='completed_travelled'){
+       actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700">✅ Trip completed by owner • Please confirm & rate</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button onclick="confirmTravel(\''+p.id+'\',\''+confId+'\')" style="font-size:9px;background:#16a34a;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">✅ Confirm I Travelled</button><button onclick="rateRide(\''+p.id+'\',\''+p.phone+'\',\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">⭐ Rate '+p.name.split(' ')[0]+'</button></div></div>';
+     } else if(myStatus==='passenger_confirmed'){
+       actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700">✅ You confirmed travel • Trip done 🙏</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button onclick="rateRide(\''+p.id+'\',\''+p.phone+'\',\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">⭐ Rate '+p.name.split(' ')[0]+'</button></div></div>';
+     } else if(myStatus==='no_show'){
+       actionBtn = '<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">⚪ Marked as No-Show by owner</span>';
+     } else if(myStatus==='expired'){
+       actionBtn = '<span style="font-size:9px;background:#f1f5f9;color:#64748b;padding:6px 10px;border-radius:20px;font-weight:700">⚫ Expired • Ride time passed</span>';
+     } else {
+       // confirmed
+       actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:8px;background:#dcfce7;color:#065f46;padding:4px 8px;border-radius:10px;font-weight:700;border:1px solid #bbf7d0">📱 Seva Saathi: '+p.phone+' • You: '+currentSeats+' seat(s) • '+seatsLeft+' left</span><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><a href="tel:+91'+p.phone+'" style="font-size:9px;background:#16a34a;color:white;padding:6px 10px;border-radius:20px;text-decoration:none;font-weight:700">📞 Call</a><button onclick="openWhatsAppContact(\''+p.id+'\', true)" style="font-size:9px;background:#25D366;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">WhatsApp ✓</button>'+(canAddMore?'<button onclick="bookMoreSeats(\''+p.id+'\', '+seatsLeft+', '+currentSeats+')" style="font-size:9px;background:#f59e0b;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">+ Add Seat ('+seatsLeft+' left)</button>':'')+'<button onclick="confirmTravel(\''+p.id+'\',\''+confId+'\')" style="font-size:9px;background:#3b82f6;color:white;padding:6px 10px;border-radius:20px;border:none;font-weight:700">✅ I Travelled - Confirm</button><button onclick="cancelMyBooking(\''+p.id+'\',\''+confId+'\')" style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;border:none;font-weight:700">Cancel ❌</button></div></div>';
+     }
+
     } else if(hasPending){
      const myPendBooking = myBookings.find(b=>b.status==='pending');
      const pendId = myPendBooking ? myPendBooking.id : '';
      actionBtn = '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span style="font-size:9px;background:#fef3c7;color:#92400e;padding:6px 10px;border-radius:20px;font-weight:700;border:1px solid #fde68a">Pending Approval ⏳</span><button onclick="cancelMyBooking(\''+p.id+'\',\''+pendId+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:5px 8px;border-radius:20px;border:none;font-weight:700">Cancel Request ❌</button></div>';
     } else if(hasDenied){
      actionBtn = '<div style="display:flex;gap:4px"><span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">Denied ❌</span><button onclick="rebookAfterDenied(\''+p.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔄 Rebook</button></div>';
+    } else if(p.booking_cutoff_passed){
+     actionBtn = '<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">🔒 Booking closed • Cutoff '+(p.booking_cutoff_minutes||30)+'m before • Ride at '+(p.time||'')+'</span>';
     } else if(isFull){
      actionBtn = '<span style="font-size:9px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:20px;font-weight:700">Full • '+confirmedBookings.length+' booked</span>';
     } else {
@@ -945,6 +1025,8 @@ async function editSevaPost(postId){
     document.getElementById('sevaDate').value = post.date || '';
     document.getElementById('sevaTime').value = post.time || '';
     document.getElementById('sevaSeats').value = post.seats || '1 seat';
+    const cutoffEl = document.getElementById('sevaCutoff');
+    if(cutoffEl){ cutoffEl.value = (post.booking_cutoff_minutes !== undefined ? post.booking_cutoff_minutes : 30).toString(); }
     document.getElementById('sevaPrice').value = post.price || '';
     document.getElementById('sevaTitle').value = post.title || '';
     document.getElementById('sevaDesc').value = post.description || '';
@@ -974,6 +1056,153 @@ async function editSevaPost(postId){
     alert('Failed to load ride for edit: '+e.message);
   }
 }
+
+
+// === RIDE COMPLETION WORKFLOW - Trip Done, Confirm Travel, Rating ===
+
+async function markTripDone(postId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  
+  try{
+    const resList = await fetch(apiBase+'/api/seva/list?society_id='+selectedSociety);
+    const dataList = await resList.json();
+    const post = (dataList.posts||[]).find(p=>p.id===postId);
+    if(!post){ alert('Ride not found'); return; }
+    
+    const confirmed = (post.bookings||[]).filter(b=>b.status==='confirmed');
+    const passengerList = confirmed.map(b=> b.name + ' ('+b.flat+') - '+b.seats_booked+' seat(s)').join('\n');
+    
+    let msg = '✅ Mark this trip as COMPLETED?\n\n';
+    msg += 'From: '+post.from_source+' → '+post.to_destination+'\n';
+    msg += 'Date: '+post.date+' '+post.time+'\n';
+    msg += 'Confirmed: '+confirmed.length+' passenger(s)\n';
+    if(passengerList) msg += '\n' + passengerList + '\n';
+    msg += '\nSelect who did NOT show up (no-show):';
+    
+    let noShowIds = [];
+    if(confirmed.length>0){
+      // Show checklist for no-shows
+      let noShowPrompt = 'Did all passengers travel?\n\n';
+      noShowPrompt += 'Enter numbers of passengers who were NO-SHOW (comma separated), or leave empty if all travelled:\n';
+      confirmed.forEach((b,i)=>{
+        noShowPrompt += (i+1)+'. '+b.name+' ('+b.flat+') - '+b.seats_booked+' seat(s)\n';
+      });
+      noShowPrompt += '\nExample: 2 or 1,3 or empty for all travelled';
+      
+      const noShowInput = prompt(noShowPrompt, '');
+      if(noShowInput===null) return; // Cancelled
+      if(noShowInput.trim()){
+        const indices = noShowInput.split(',').map(s=>parseInt(s.trim())-1).filter(i=>!isNaN(i) && i>=0 && i<confirmed.length);
+        noShowIds = indices.map(i=>confirmed[i].id);
+      }
+    }
+    
+    const notes = prompt('Add completion notes (optional):', 'Trip completed - thanks all 🙏');
+    if(notes===null) return;
+    
+    if(!confirm(msg + '\n\nNo-show: '+(noShowIds.length? noShowIds.length+' passenger(s)' : 'None - all travelled')+'\n\nConfirm trip completion? This will notify all passengers via WhatsApp to rate.')) return;
+    
+    const res = await fetch(apiBase+'/api/seva/ride/mark-completed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post_id: postId, owner_phone: verified.phone, no_show_ids: noShowIds, notes: notes})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    
+    alert('✅ '+data.message+'\n\nTrip marked as completed! WhatsApp will open for each travelled passenger to ask for rating.');
+    
+    // Open WhatsApp for each
+    const list = data.whatsapp_list || [];
+    for(let i=0;i<list.length;i++){
+      const item = list[i];
+      setTimeout(()=>{
+        window.open('https://wa.me/91'+item.phone+'?text='+encodeURIComponent(item.text),'_blank');
+      }, i*1200);
+    }
+    
+    loadSeva();
+  }catch(e){
+    alert('❌ '+e.message);
+  }
+}
+
+async function confirmTravel(postId, bookingId){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  if(!confirm('✅ Confirm you travelled on this ride?\n\nThis will mark your booking as travel confirmed and allow rating.')) return;
+  try{
+    const res = await fetch(apiBase+'/api/seva/booking/confirm-travel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id: bookingId, post_id: postId, phone: verified.phone})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    alert('✅ '+data.message);
+    loadSeva();
+  }catch(e){
+    alert('❌ '+e.message);
+  }
+}
+
+async function rateRide(postId, ratedPhone, ratedName){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  
+  const ratingStr = prompt('⭐ Rate '+ratedName+' (Seva Saathi) - Enter stars 1-5:\n\n5 = Excellent, 4 = Good, 3 = OK, 2 = Poor, 1 = Bad', '5');
+  if(ratingStr===null) return;
+  const rating = parseInt(ratingStr);
+  if(isNaN(rating) || rating<1 || rating>5){
+    alert('Enter 1-5 stars');
+    return;
+  }
+  const comment = prompt('Add comment (optional) for '+ratedName+':', rating>=4 ? 'Safe driving, on time, good person 🙏' : '');
+  if(comment===null) return;
+  
+  try{
+    const res = await fetch(apiBase+'/api/seva/ride/rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post_id: postId, rater_phone: verified.phone, rated_phone: ratedPhone, rating: rating, comment: comment})});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    alert('✅ Thanks! You rated '+ratedName+' '+rating+' stars ⭐');
+    loadSeva();
+  }catch(e){
+    alert('❌ '+e.message);
+  }
+}
+
+async function loadMyRidesHistory(){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  if(!verified.phone){ alert('Login first'); return; }
+  try{
+    const res = await fetch(apiBase+'/api/seva/history?phone='+verified.phone+'&society_id='+selectedSociety);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail);
+    
+    let htmlOut = '<div style="background:white;border-radius:12px;padding:12px;margin-bottom:10px"><h3 style="font-size:14px">📜 My Rides History - '+verified.name+'</h3>';
+    htmlOut += '<div style="display:flex;gap:6px;margin-top:8px"><span style="font-size:10px;background:#dcfce7;padding:4px 8px;border-radius:20px">Upcoming: '+data.upcoming_count+'</span><span style="font-size:10px;background:#f1f5f9;padding:4px 8px;border-radius:20px">Past: '+data.past_count+'</span><span style="font-size:10px;background:#fef3c7;padding:4px 8px;border-radius:20px">Total: '+data.count+'</span></div></div>';
+    
+    if(data.upcoming.length){
+      htmlOut += '<div style="font-size:10px;font-weight:700;margin:8px 0">🟢 Upcoming Rides</div>';
+      data.upcoming.forEach(p=>{
+        const isOwner = p.phone===verified.phone;
+        htmlOut += '<div style="background:white;border:1px solid #bbf7d0;border-radius:10px;padding:8px;margin-bottom:6px"><b style="font-size:11px">'+(p.from_source||'')+' → '+(p.to_destination||'')+'</b><p style="font-size:8px;color:#64748b">'+p.date+' '+p.time+' • '+(isOwner?'Your Ride':'Passenger')+' • '+p.status+' • Rs '+(p.price||'Free')+'</p></div>';
+      });
+    }
+    if(data.past.length){
+      htmlOut += '<div style="font-size:10px;font-weight:700;margin:12px 0 8px">✅ Past Rides</div>';
+      data.past.forEach(p=>{
+        const isOwner = p.phone===verified.phone;
+        const ratings = p.ratings||[];
+        const avgRating = ratings.length ? (ratings.reduce((s,r)=>s+r.rating,0)/ratings.length).toFixed(1) : '';
+        htmlOut += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px;margin-bottom:6px"><b style="font-size:11px">'+(p.from_source||'')+' → '+(p.to_destination||'')+'</b> <span style="font-size:8px;background:'+(p.status==='completed'?'#dcfce7':'#fee2e2')+';padding:2px 6px;border-radius:10px">'+p.status+(avgRating?' • ⭐'+avgRating:'')+'</span><p style="font-size:8px;color:#64748b">'+p.date+' '+p.time+' • '+(isOwner?'Your Ride ('+ (p.completed_count||0)+' travelled)':'Passenger')+' • Rs '+(p.price||'Free')+'</p></div>';
+      });
+    }
+    if(!data.all.length){
+      htmlOut += '<div style="background:white;border-radius:10px;padding:20px;text-align:center;color:#94a3b8;font-size:11px">No rides yet - post your first car pool!</div>';
+    }
+    
+    // Show in modal or replace feed
+    const feed = document.getElementById('sevaFeed');
+    feed.innerHTML = htmlOut + '<div style="text-align:center;margin-top:12px"><button onclick="loadSeva()" style="font-size:10px;background:#3b82f6;color:white;padding:8px 16px;border-radius:20px;border:none">← Back to Active Seva</button></div>';
+  }catch(e){
+    alert('Failed to load history: '+e.message);
+  }
+}
+
 
 function cancelEditMode(){
   editingPostId = null;
@@ -1047,7 +1276,9 @@ async function submitPost(){
   payload.time = timeVal;
   payload.seats = seatsVal;
   payload.price = priceVal;
-  payload.when = `${dateVal} ${timeVal} • ${seatsVal} ${priceVal ? '• Rs '+priceVal : ''}`.trim();
+  const cutoffVal = document.getElementById('sevaCutoff') ? document.getElementById('sevaCutoff').value : '30';
+  payload.booking_cutoff_minutes = parseInt(cutoffVal) || 30;
+  payload.when = `${dateVal} ${timeVal} • ${seatsVal} ${priceVal ? '• Rs '+priceVal : ''} • Cutoff ${cutoffVal}m`.trim();
   // Include car from profile - use selected car if multiple, else first
   let selectedCarId = localStorage.getItem('selectedCarId');
   if(verified.cars && verified.cars.length){ 
@@ -1107,7 +1338,8 @@ async function submitPost(){
       seats: payload.seats,
       car: payload.car,
       car_id: payload.car_id,
-      type: payload.type
+      type: payload.type,
+      booking_cutoff_minutes: payload.booking_cutoff_minutes
     };
     console.log('Editing ride', editingPostId, fetchPayload);
   }

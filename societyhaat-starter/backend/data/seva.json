@@ -5,17 +5,17 @@
     "type": "Car Pool",
     "title": "Car Pool For Save Environment",
     "description": "Maruti Suzuki WagonR (Hatchback, 5 Seater, White AC). Comfortable ride, well maintained.",
-    "when": "2026-10-04 07:40 • 2 seats • Rs 250",
+    "when": "2026-10-03 03:22 •  • Rs 250 • Cutoff 30m",
     "from_to": "EV2 Gate No. 2 → Sector 52 Metro",
     "from_source": "EV2 Gate No. 2",
     "to_destination": "Sector 52 Metro",
-    "date": "2026-10-04",
-    "time": "07:40",
-    "seats": "2 seats",
+    "date": "2026-10-03",
+    "time": "03:22",
+    "seats": "Car full - Closed by owner",
     "seats_total": 2,
-    "seats_booked": 0,
+    "seats_booked": 1,
     "seats_pending": 0,
-    "seats_left": 2,
+    "seats_left": 0,
     "price": "250",
     "phone": "9560779666",
     "name": "Mohan Poddar",
@@ -32,11 +32,49 @@
       "created_at": "2026-10-02T23:55:35.381482"
     },
     "car_id": "Maruti_WagonR_9560779666",
-    "bookings": [],
+    "bookings": [
+      {
+        "id": "ff4ecded",
+        "post_id": "03b19b58",
+        "ride_owner": "9560779666",
+        "ride_owner_name": "Mohan Poddar",
+        "from_source": "EV2 Gate No. 2",
+        "to_destination": "Sector 52 Metro",
+        "date": "2026-10-03",
+        "time": "03:46",
+        "phone": "9625561517",
+        "name": "Piyush Poddar",
+        "flat": "A2-102",
+        "seats_booked": 1,
+        "price_per_seat": "250",
+        "total_price": "250",
+        "status": "passenger_confirmed",
+        "created_at": "2026-10-03T03:15:51.493163",
+        "confirmed_at": "2026-10-03T03:16:06.154796",
+        "passenger_confirmed_at": "2026-10-03T03:26:36.625589"
+      }
+    ],
     "created_at": "2026-10-03T01:40:34.499706",
-    "status": "active",
-    "owner_closed": false,
-    "updated_at": "2026-10-03T01:55:00.617229",
-    "edited": true
+    "status": "full",
+    "owner_closed": true,
+    "updated_at": "2026-10-03T03:20:46.509194",
+    "edited": true,
+    "booking_cutoff_minutes": 30,
+    "original_seats_left": 1,
+    "original_seats_total": 2,
+    "closed_at": "2026-10-03T03:22:45.008750",
+    "close_reason": "Car full - I have enough passengers, closing booking",
+    "ratings": [
+      {
+        "id": "0410b6",
+        "post_id": "03b19b58",
+        "booking_id": "",
+        "rater_phone": "9625561517",
+        "rated_phone": "9560779666",
+        "rating": 5,
+        "comment": "Safe driving, on time, good person 🙏",
+        "created_at": "2026-10-03T03:27:06.633077"
+      }
+    ]
   }
 ]

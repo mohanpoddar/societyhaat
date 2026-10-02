@@ -45,6 +45,64 @@ def save_bookings(data):
     with open(BOOKINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
+
+def parse_ride_datetime(date_str, time_str):
+    """Parse ride date and time into datetime, support YYYY-MM-DD and DD/MM/YYYY"""
+    try:
+        if not date_str or not time_str:
+            return None
+        # Try to parse date
+        dt_date = None
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%m/%d/%Y"):
+            try:
+                dt_date = datetime.strptime(date_str.strip(), fmt).date()
+                break
+            except:
+                continue
+        if not dt_date:
+            return None
+        # Parse time HH:MM or HH:MM AM/PM
+        t_str = time_str.strip()
+        dt_time = None
+        for fmt in ("%H:%M", "%I:%M %p", "%I:%M%p", "%H:%M:%S"):
+            try:
+                dt_time = datetime.strptime(t_str.upper(), fmt).time()
+                break
+            except:
+                continue
+        if not dt_time:
+            # Try without space AM/PM
+            try:
+                # Handle 07:40 AM format
+                t_upper = t_str.upper().replace(" ", "")
+                for fmt in ("%I:%M%p",):
+                    dt_time = datetime.strptime(t_upper, fmt).time()
+                    break
+            except:
+                return None
+        if not dt_time:
+            return None
+        return datetime.combine(dt_date, dt_time)
+    except Exception as e:
+        print(f"parse_ride_datetime error: {e}, date={date_str}, time={time_str}")
+        return None
+
+def is_booking_cutoff_passed(post):
+    """Check if booking cutoff has passed for a post"""
+    try:
+        cutoff_mins = int(post.get('booking_cutoff_minutes', 30))
+    except:
+        cutoff_mins = 30
+    ride_dt = parse_ride_datetime(post.get('date',''), post.get('time',''))
+    if not ride_dt:
+        return False, None, cutoff_mins  # If can't parse, don't block
+    cutoff_time = ride_dt.timestamp() - (cutoff_mins * 60)
+    now_ts = datetime.now().timestamp()
+    is_passed = now_ts > cutoff_time
+    return is_passed, ride_dt, cutoff_mins
+
+
+
 def parse_seats(seats_str):
     if not seats_str:
         return 4
@@ -82,6 +140,9 @@ async def create_seva(payload: dict):
     flat = payload.get("flat","").strip()
     car = payload.get("car", {})
     car_id = payload.get("car_id","").strip()
+    booking_cutoff_minutes = int(payload.get("booking_cutoff_minutes", 30) or 30)
+    if booking_cutoff_minutes not in [15,30,45,60,75,90,120,0]:
+        booking_cutoff_minutes = 30
     if not title or not description:
         raise HTTPException(status_code=400, detail="Title and description required")
     posts = load_seva()
@@ -146,6 +207,11 @@ async def book_ride(payload: dict):
         raise HTTPException(status_code=400, detail="You cannot book your own ride")
     if post.get('status') in ('full','cancelled') or post.get('owner_closed'):
         raise HTTPException(status_code=400, detail=f"Ride is {post.get('status','full')} - owner closed bookings. Cannot book now")
+    # Check booking cutoff time
+    is_passed, ride_dt, cutoff_mins = is_booking_cutoff_passed(post)
+    if is_passed and ride_dt:
+        ride_time_str = ride_dt.strftime("%d/%m/%Y %I:%M %p")
+        raise HTTPException(status_code=400, detail=f"Booking closed - cutoff {cutoff_mins} mins before ride. Ride starts at {ride_time_str}. Booking closed. Contact owner directly on WhatsApp if urgent")
     pending_booked = sum(b.get('seats_booked',0) for b in post.get('bookings',[]) if b.get('status')=='pending')
     available = post.get('seats_total', post.get('seats_left',0)) - post.get('seats_booked',0) - pending_booked
     if available < seats_requested:
@@ -737,6 +803,13 @@ async def update_seva(payload: dict):
         post['car_id'] = payload["car_id"].strip()
     if "type" in payload and payload["type"].strip():
         post['type'] = payload["type"].strip()
+    if "booking_cutoff_minutes" in payload:
+        try:
+            cm = int(payload["booking_cutoff_minutes"])
+            if cm in [0,15,30,45,60,75,90,120]:
+                post['booking_cutoff_minutes'] = cm
+        except:
+            pass
     
     post['updated_at'] = datetime.now().isoformat()
     post['edited'] = True
@@ -763,6 +836,321 @@ async def update_seva(payload: dict):
             pass
     
     return {"message": "Ride updated successfully - fee/time/location changed", "post": post}
+
+
+
+# === RIDE COMPLETION WORKFLOW - Both parties travelled, how it ends ===
+
+@router.post("/ride/mark-completed")
+async def mark_ride_completed(payload: dict):
+    """Mohan marks trip as done after travel - with no-show handling"""
+    post_id = payload.get("post_id","").strip() or payload.get("id","").strip()
+    owner_phone = payload.get("owner_phone","").strip() or payload.get("phone","").strip()
+    no_show_ids = payload.get("no_show_ids", [])  # list of booking ids who didn't show
+    notes = payload.get("notes","").strip() or "Trip completed"
+    if not post_id or not owner_phone:
+        raise HTTPException(status_code=400, detail="post_id and owner_phone required")
+    posts = load_seva()
+    bookings = load_bookings()
+    post = None
+    post_idx = -1
+    for i,p in enumerate(posts):
+        if p.get('id')==post_id:
+            post=p
+            post_idx=i
+            break
+    if not post:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    if post.get('phone')!=owner_phone:
+        raise HTTPException(status_code=403, detail="Only ride owner can mark completed")
+    if post.get('status') in ('cancelled',):
+        raise HTTPException(status_code=400, detail=f"Cannot complete {post.get('status')} ride")
+    if post.get('status')=='completed':
+        raise HTTPException(status_code=400, detail="Ride already completed")
+    
+    # Mark no-shows
+    no_show_count = 0
+    completed_count = 0
+    for b in bookings:
+        if b.get('post_id')==post_id and b.get('status')=='confirmed':
+            if b.get('id') in no_show_ids:
+                b['status']='no_show'
+                b['no_show_at']=datetime.now().isoformat()
+                b['no_show_by']='owner'
+                no_show_count+=1
+            else:
+                b['status']='completed_travelled'
+                b['completed_at']=datetime.now().isoformat()
+                b['completed_by']='owner'
+                completed_count+=1
+    save_bookings(bookings)
+    
+    # Update post bookings
+    for pb in post.get('bookings',[]):
+        if pb.get('status')=='confirmed':
+            if pb.get('id') in no_show_ids:
+                pb['status']='no_show'
+                pb['no_show_at']=datetime.now().isoformat()
+            else:
+                pb['status']='completed_travelled'
+                pb['completed_at']=datetime.now().isoformat()
+    
+    post['status']='completed'
+    post['completed_at']=datetime.now().isoformat()
+    post['completed_by']='owner'
+    post['completed_notes']=notes
+    post['no_show_count']=no_show_count
+    post['completed_count']=completed_count
+    post['seats']='Trip completed'
+    posts[post_idx]=post
+    save_seva(posts)
+    
+    # WhatsApp to all completed
+    whatsapp_list = []
+    for b in bookings:
+        if b.get('post_id')==post_id and b.get('status')=='completed_travelled':
+            wa_text = f"Hi {b.get('name')}, thanks for travelling with {post.get('name')} today 🙏 Ride {post.get('from_source')} → {post.get('to_destination')} on {post.get('date')} marked as COMPLETED. Please confirm travel & rate your Seva Saathi in Society Haat app. Safe travels! - Society Haat"
+            whatsapp_list.append({"phone": b.get('phone'), "name": b.get('name'), "text": wa_text})
+    
+    return {"message": f"Trip completed - {completed_count} travelled, {no_show_count} no-show", "post": post, "completed_count": completed_count, "no_show_count": no_show_count, "whatsapp_list": whatsapp_list, "whatsapp_text": f"Ride {post.get('from_source')} → {post.get('to_destination')} completed. {completed_count} travelled. Please rate."}
+
+@router.post("/booking/confirm-travel")
+async def confirm_travel(payload: dict):
+    """Piyush confirms he travelled - passenger side completion"""
+    booking_id = payload.get("booking_id","").strip()
+    post_id = payload.get("post_id","").strip()
+    phone = payload.get("phone","").strip()
+    if not booking_id and not post_id:
+        raise HTTPException(status_code=400, detail="booking_id or post_id required")
+    if not phone:
+        raise HTTPException(status_code=400, detail="phone required")
+    
+    posts = load_seva()
+    bookings = load_bookings()
+    
+    booking = None
+    booking_idx = -1
+    if booking_id:
+        for i,b in enumerate(bookings):
+            if b.get('id')==booking_id:
+                booking=b
+                booking_idx=i
+                break
+    elif post_id:
+        for i,b in enumerate(bookings):
+            if b.get('post_id')==post_id and b.get('phone')==phone and b.get('status') in ('confirmed','completed_travelled'):
+                booking=b
+                booking_idx=i
+                break
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found - only confirmed bookings can confirm travel")
+    if booking.get('phone')!=phone:
+        raise HTTPException(status_code=403, detail="Only booking owner can confirm travel")
+    if booking.get('status') not in ('confirmed','completed_travelled'):
+        raise HTTPException(status_code=400, detail=f"Cannot confirm {booking.get('status')} booking")
+    
+    # If owner already marked completed, this is passenger confirmation
+    # If owner not yet marked, mark this booking as passenger_confirmed
+    if booking.get('status')=='confirmed':
+        booking['status']='passenger_confirmed'
+        booking['passenger_confirmed_at']=datetime.now().isoformat()
+    elif booking.get('status')=='completed_travelled':
+        booking['passenger_confirmed']=True
+        booking['passenger_confirmed_at']=datetime.now().isoformat()
+    
+    bookings[booking_idx]=booking
+    save_bookings(bookings)
+    
+    # Update post
+    post = None
+    post_idx = -1
+    for i,p in enumerate(posts):
+        if p.get('id')==booking.get('post_id'):
+            post=p
+            post_idx=i
+            break
+    if post:
+        for pb in post.get('bookings',[]):
+            if pb.get('id')==booking.get('id'):
+                pb['status']=booking['status']
+                if 'passenger_confirmed_at' in booking:
+                    pb['passenger_confirmed_at']=booking['passenger_confirmed_at']
+                if 'passenger_confirmed' in booking:
+                    pb['passenger_confirmed']=True
+                break
+        # If all confirmed bookings are now passenger_confirmed or completed, auto-complete ride if owner hasn't
+        all_done = True
+        for pb in post.get('bookings',[]):
+            if pb.get('status')=='confirmed':
+                all_done=False
+                break
+        if all_done and post.get('status')!='completed':
+            # Don't auto-complete yet, wait for owner or 24h auto
+            pass
+        posts[post_idx]=post
+        save_seva(posts)
+    
+    return {"message": "Travel confirmed - thanks! Please rate your Seva Saathi", "booking": booking, "post": post}
+
+@router.post("/ride/rate")
+async def rate_ride(payload: dict):
+    """Rating after trip completion - both sides"""
+    post_id = payload.get("post_id","").strip()
+    booking_id = payload.get("booking_id","").strip()
+    rater_phone = payload.get("rater_phone","").strip() or payload.get("phone","").strip()
+    rated_phone = payload.get("rated_phone","").strip()
+    rating = int(payload.get("rating",5))
+    comment = payload.get("comment","").strip()
+    if not post_id or not rater_phone or not rated_phone:
+        raise HTTPException(status_code=400, detail="post_id, rater_phone, rated_phone required")
+    if rating<1 or rating>5:
+        raise HTTPException(status_code=400, detail="Rating must be 1-5")
+    
+    posts = load_seva()
+    bookings = load_bookings()
+    
+    # Find post
+    post = None
+    for p in posts:
+        if p.get('id')==post_id:
+            post=p
+            break
+    if not post:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    
+    # Save rating to bookings file (simple - append to ratings list in post)
+    if 'ratings' not in post:
+        post['ratings']=[]
+    
+    # Check if already rated
+    for r in post.get('ratings',[]):
+        if r.get('rater_phone')==rater_phone and r.get('rated_phone')==rated_phone:
+            raise HTTPException(status_code=400, detail="You already rated this ride")
+    
+    new_rating = {
+        "id": str(uuid.uuid4())[:6],
+        "post_id": post_id,
+        "booking_id": booking_id,
+        "rater_phone": rater_phone,
+        "rated_phone": rated_phone,
+        "rating": rating,
+        "comment": comment,
+        "created_at": datetime.now().isoformat()
+    }
+    post['ratings'].append(new_rating)
+    
+    # Update in posts
+    for i,p in enumerate(posts):
+        if p.get('id')==post_id:
+            posts[i]=post
+            break
+    save_seva(posts)
+    
+    # Also save to separate ratings file for future avg calculation
+    RATINGS_FILE = DATA_DIR / "ratings.json"
+    try:
+        ratings_data = []
+        if RATINGS_FILE.exists():
+            with open(RATINGS_FILE, 'r', encoding='utf-8') as f:
+                ratings_data = json.load(f)
+        ratings_data.append(new_rating)
+        with open(RATINGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(ratings_data, f, indent=2, ensure_ascii=False)
+    except:
+        pass
+    
+    return {"message": f"Rated {rating} stars - thanks for feedback!", "rating": new_rating, "post": post}
+
+@router.get("/history")
+async def get_ride_history(phone: str = "", society_id: str = "", status: str = ""):
+    """My Rides history - upcoming, past, completed"""
+    if not phone:
+        raise HTTPException(status_code=400, detail="phone required")
+    posts = load_seva()
+    bookings = load_bookings()
+    
+    # Rides where user is owner
+    owned = [p for p in posts if p.get('phone')==phone]
+    # Rides where user is passenger (booked)
+    booked_post_ids = [b.get('post_id') for b in bookings if b.get('phone')==phone]
+    passenger_posts = [p for p in posts if p.get('id') in booked_post_ids]
+    
+    # Combine
+    all_user_posts = owned + [p for p in passenger_posts if p.get('id') not in [op.get('id') for op in owned]]
+    
+    if society_id:
+        all_user_posts = [p for p in all_user_posts if p.get('society_id','sev2').lower() == society_id.lower()]
+    if status:
+        all_user_posts = [p for p in all_user_posts if p.get('status','').lower() == status.lower()]
+    
+    # Sort by date desc
+    all_user_posts = sorted(all_user_posts, key=lambda x: x.get('created_at',''), reverse=True)
+    
+    # Categorize
+    upcoming = []
+    past = []
+    for p in all_user_posts:
+        ride_dt = parse_ride_datetime(p.get('date',''), p.get('time',''))
+        if not ride_dt:
+            # If no date, treat as past if completed/cancelled, else upcoming
+            if p.get('status') in ('completed','cancelled'):
+                past.append(p)
+            else:
+                upcoming.append(p)
+        else:
+            if p.get('status') in ('completed','cancelled') or ride_dt < datetime.now():
+                past.append(p)
+            else:
+                upcoming.append(p)
+    
+    return {
+        "phone": phone,
+        "all": all_user_posts,
+        "upcoming": upcoming,
+        "past": past,
+        "owned": owned,
+        "passenger": passenger_posts,
+        "count": len(all_user_posts),
+        "upcoming_count": len(upcoming),
+        "past_count": len(past)
+    }
+
+@router.post("/ride/auto-expire")
+async def auto_expire_old_rides():
+    """Cron - auto expire rides older than 24h after ride time"""
+    posts = load_seva()
+    bookings = load_bookings()
+    expired_count = 0
+    for i,p in enumerate(posts):
+        if p.get('status') in ('cancelled','completed'):
+            continue
+        ride_dt = parse_ride_datetime(p.get('date',''), p.get('time',''))
+        if not ride_dt:
+            continue
+        # If ride time + 24h passed and not completed
+        if datetime.now().timestamp() > (ride_dt.timestamp() + 24*3600):
+            # If has confirmed bookings not yet marked, auto-complete them as expired
+            has_confirmed = any(b.get('status')=='confirmed' for b in p.get('bookings',[]))
+            p['status']='expired'
+            p['expired_at']=datetime.now().isoformat()
+            p['expired_reason']='Auto-expired after 24h'
+            posts[i]=p
+            expired_count+=1
+            # Mark bookings as expired
+            for b in bookings:
+                if b.get('post_id')==p.get('id') and b.get('status')=='confirmed':
+                    b['status']='expired'
+                    b['expired_at']=datetime.now().isoformat()
+            for pb in p.get('bookings',[]):
+                if pb.get('status')=='confirmed':
+                    pb['status']='expired'
+                    pb['expired_at']=datetime.now().isoformat()
+    if expired_count>0:
+        save_seva(posts)
+        save_bookings(bookings)
+    return {"message": f"Auto-expired {expired_count} old rides", "expired_count": expired_count}
+
 
 
 @router.post("/delete")
