@@ -804,8 +804,29 @@ async function loadSeva(){
   }
   const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
   const myPhone = (verified.phone || '').toString().trim();
-  let htmlOut = '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="tag tag-isolated">🏠 Isolated: '+selectedSociety.toUpperCase()+' only</span><span class="tag" style="background:#fef3c7">'+posts.length+' seva</span></div>';
-  for(let p of posts){
+  
+  // === FIX: Main page only current/ongoing, past completed goes to history ===
+  const now = new Date();
+  const filteredPosts = posts.filter(p=>{
+    // Always hide completed, cancelled, expired from main feed - they go to history
+    if(['completed','cancelled','expired'].includes(p.status)) return false;
+    // Hide rides whose date+time is past + 24h (old rides)
+    try{
+      const rd = new Date(p.date+' '+p.time);
+      if(!isNaN(rd)){
+        // If ride time + 24h is past, hide from main feed (goes to history)
+        if(now.getTime() > (rd.getTime() + 24*60*60*1000)) return false;
+      }
+    }catch(e){}
+    return true;
+  });
+  const hiddenCount = posts.length - filteredPosts.length;
+  
+  let htmlOut = '<div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center"><div style="display:flex;gap:6px;align-items:center"><span class="tag tag-isolated">🏠 Isolated: '+selectedSociety.toUpperCase()+' only</span><span class="tag" style="background:#f1f5f9">'+filteredPosts.length+' active</span>'+(hiddenCount>0 ? '<span class="tag" style="background:#e2e8f0;color:#64748b">'+hiddenCount+' in history</span>' : '')+'</div><div style="display:flex;gap:4px"><button onclick="loadMyRidesHistory()" style="font-size:8px;background:#3b82f6;color:white;padding:4px 8px;border-radius:20px;border:none;font-weight:700">📜 History ('+hiddenCount+')</button></div></div>';
+  if(filteredPosts.length===0 && posts.length>0){
+    htmlOut += '<div style="background:white;border-radius:12px;padding:16px;text-align:center;margin-bottom:10px"><p style="font-size:11px;font-weight:700">No active rides</p><p style="font-size:9px;color:#64748b;margin-top:4px">'+hiddenCount+' past rides moved to history - click History to view</p><button onclick="loadMyRidesHistory()" style="margin-top:8px;font-size:9px;background:#3b82f6;color:white;padding:6px 12px;border-radius:20px;border:none;font-weight:700">📜 View Travel History</button></div>';
+  }
+  for(let p of filteredPosts){
    const typeLower = (p.type||'').toLowerCase();
    const isCarPool = typeLower.includes('car pool') || typeLower.includes('share auto') || typeLower.includes('carpool');
    const postPhone = (p.phone||'').toString().trim();
@@ -902,8 +923,30 @@ async function loadSeva(){
         });
         carInfo += '</div>';
       }
-      if(completedTravelledBookings.length===0 && noShowBookingsList.length===0){
+      const reportedNoTravelBookings = bookings.filter(b=>b.status==='passenger_reported_no_travel');
+      if(reportedNoTravelBookings.length>0){
+        carInfo += '<div style="margin-top:6px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:6px"><p style="font-size:8px;font-weight:700;color:#92400e">💬 Updated by traveller - Could not travel ('+reportedNoTravelBookings.length+'):</p>';
+        reportedNoTravelBookings.forEach(b=>{
+          const reason = b.passenger_no_travel_reason || b.passenger_reported_no_travel_reason || 'Rather not mention';
+          carInfo += '<div style="background:white;border:1px solid #fde68a;border-radius:6px;padding:6px;margin-top:4px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:8px"><b>'+b.name+' • '+b.flat+'</b> • 💺 '+b.seats_booked+' • 📱 '+b.phone+'</span><span style="font-size:7px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:10px">Updated: Could not travel</span></div><p style="font-size:8px;color:#92400e;margin-top:4px;background:#fffbeb;padding:4px;border-radius:4px">💬 Reason: <b>'+reason+'</b></p><p style="font-size:7px;color:#94a3b8;margin-top:2px">Reported: '+new Date(b.passenger_reported_no_travel_at||b.created_at).toLocaleString()+'</p></div>';
+        });
+        carInfo += '</div>';
+      }
+      if(completedTravelledBookings.length===0 && noShowBookingsList.length===0 && reportedNoTravelBookings.length===0){
         carInfo += '<div style="margin-top:6px;background:#f1f5f9;border:1px dashed #e2e8f0;border-radius:8px;padding:6px"><p style="font-size:8px;color:#64748b">✅ Completed trip • '+(p.completed_count||0)+' travelled, '+(p.no_show_count||0)+' no-show • '+(p.completed_notes||'')+'</p></div>';
+      }
+    }
+    
+    // For owner - show all reported no travel even before completion (if ride still active but someone reported)
+    if(isOwner){
+      const activeReported = bookings.filter(b=>b.status==='passenger_reported_no_travel');
+      if(activeReported.length>0 && p.status!=='completed'){
+        carInfo += '<div style="margin-top:6px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:6px"><p style="font-size:8px;font-weight:700;color:#92400e">💬 Traveller update - Could not travel:</p>';
+        activeReported.forEach(b=>{
+          const reason = b.passenger_no_travel_reason || 'Rather not mention';
+          carInfo += '<div style="background:white;border-radius:6px;padding:4px 6px;margin-top:4px"><span style="font-size:8px"><b>'+b.name+' • '+b.flat+'</b> updated: Could not travel</span><br><span style="font-size:7px;color:#92400e">💬 Reason: '+reason+' • '+new Date(b.passenger_reported_no_travel_at).toLocaleString()+'</span></div>';
+        });
+        carInfo += '</div>';
       }
     }
     
@@ -968,7 +1011,7 @@ async function loadSeva(){
        actionBtn += (isOwnerClosed ? '<button onclick="markRideOpen(\''+p.id+'\')" style="font-size:8px;background:#16a34a;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔓 Reopen Ride</button>' : '<button onclick="markRideFull(\''+p.id+'\')" style="font-size:8px;background:#f59e0b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🔒 Mark Full - Close Booking</button>')+'<button onclick="cancelEntireRide(\''+p.id+'\')" style="font-size:8px;background:#fee2e2;color:#991b1b;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🚫 Cancel All & Notify</button><button onclick="deleteRidePost(\''+p.id+'\')" style="font-size:8px;background:#1e293b;color:white;padding:5px 8px;border-radius:20px;border:none;font-weight:700">🗑 Delete Ride</button>';
      }
      actionBtn += '</div></div>';
-    } else if(hasBooked || myBookings.some(b=>b.status==='completed_travelled' || b.status==='passenger_confirmed' || b.status==='no_show' || b.status==='expired')){
+    } else if(hasBooked || myBookings.some(b=>['completed_travelled','passenger_confirmed','no_show','expired','passenger_reported_no_travel','passenger_reported_no_show'].includes(b.status))){
      const myConfBooking = myBookings.find(b=>['confirmed','completed_travelled','passenger_confirmed','no_show','expired'].includes(b.status));
      const confId = myConfBooking ? myConfBooking.id : '';
      const currentSeats = myConfBooking ? myConfBooking.seats_booked : 1;
@@ -1170,6 +1213,16 @@ function closeTripDoneModal(){
   document.getElementById('tripDoneModal').style.display='none';
   document.getElementById('tripDoneModal').classList.remove('show');
   currentTripDonePostId = null;
+  window.currentReportBookingId = null;
+  window.currentReportPostId = null;
+  // Restore Trip Done button
+  const confirmBtn = document.querySelector('#tripDoneModal button[onclick="confirmReportNotTravel()"]');
+  if(confirmBtn){
+    confirmBtn.setAttribute('onclick', 'confirmTripDone()');
+    confirmBtn.textContent = '✅ Confirm Completed';
+    confirmBtn.style.background = '#16a34a';
+    document.getElementById('tripDoneModal').querySelector('h3').textContent = '✅ Mark Trip as Completed';
+  }
 }
 
 async function confirmTripDone(){
@@ -1210,7 +1263,7 @@ async function confirmTripDone(){
     });
     summary += '\nNo-show names:\n' + noShowNames.join('\n');
   }
-  summary += '\n\nThis will notify travelled passengers via WhatsApp to rate.';
+  summary += '\n\nThis will update records respectfully and notify travelled passengers to rate if they wish.';
   
   if(!confirm(summary)) return;
   
@@ -1243,24 +1296,81 @@ async function confirmTravel(postId, bookingId){
   return;
 }
 
+// Modal HTML will be added dynamically
 async function reportNotTravel(postId, bookingId){
   const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
   if(!verified.phone){ alert('Login first'); return; }
-  const reason = prompt('⚪ Report: I did NOT travel\n\nYou were marked as travelled but you did NOT travel on this ride.\n\nPlease tell reason (required):\n- Owner marked wrong\n- I missed ride\n- Ride cancelled but still marked\n\nEnter reason:', '');
-  if(reason===null) return;
-  if(!reason.trim() || reason.trim().length<5){
-    alert('Please enter reason (min 5 chars) - required');
-    return;
+  
+  // Respectful modal - proper alignment, clean UI
+  let modalContent = `
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px;margin-bottom:12px;text-align:left">
+    <p style="font-size:12px;font-weight:800;color:#166534">🙏 Update Travel Status</p>
+    <p style="font-size:9px;color:#475569;margin-top:6px;line-height:1.4">You were marked as travelled. If you could not travel, let your Seva Saathi know - helps keep SEV2 records accurate for healthy collaboration.</p>
+  </div>
+  <p style="font-size:10px;font-weight:700;margin-bottom:8px;color:#1e293b;text-align:left">Why could not you travel? (default is respectful)</p>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <label style="display:flex;align-items:center;justify-content:flex-start;gap:10px;background:#fefce8;border:2px solid #f59e0b;border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left"><input type="radio" name="notTravelReason" value="Rather not mention - Personal reason" checked style="width:16px;height:16px;flex-shrink:0"> <span style="font-size:10px;font-weight:600;color:#92400e">🤫 Rather not mention - Personal reason<br><span style="font-size:8px;color:#a16207;font-weight:400">(default, positive approach - no details needed)</span></span></label>
+    <label style="display:flex;align-items:center;justify-content:flex-start;gap:10px;background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left"><input type="radio" name="notTravelReason" value="Plan changed" style="width:16px;height:16px;flex-shrink:0"> <span style="font-size:10px;color:#334155">📅 Plan changed</span></label>
+    <label style="display:flex;align-items:center;justify-content:flex-start;gap:10px;background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left"><input type="radio" name="notTravelReason" value="Got another ride" style="width:16px;height:16px;flex-shrink:0"> <span style="font-size:10px;color:#334155">🚗 Got another ride / Lift arranged</span></label>
+    <label style="display:flex;align-items:center;justify-content:flex-start;gap:10px;background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left"><input type="radio" name="notTravelReason" value="Timing issue" style="width:16px;height:16px;flex-shrink:0"> <span style="font-size:10px;color:#334155">⏰ Timing issue / Delayed</span></label>
+    <label style="display:flex;align-items:center;justify-content:flex-start;gap:10px;background:white;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left"><input type="radio" name="notTravelReason" value="Other" style="width:16px;height:16px;flex-shrink:0"> <span style="font-size:10px;color:#334155">✏️ Other (add note)</span></label>
+  </div>
+  <div id="otherReasonDiv" style="display:none;margin-top:10px;text-align:left"><label style="font-size:9px;font-weight:700">Add note (optional):</label><textarea id="otherReasonText" placeholder="Brief reason - e.g. Family emergency" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid #e2e8f0;font-size:10px;min-height:50px"></textarea></div>
+  <div style="margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px;text-align:left"><p style="font-size:8px;color:#166534;line-height:1.4">💚 <b>SEV2 is about healthy collaboration & positive approach.</b> Your update helps Seva Saathi keep accurate records, no negative marking. Mohan will be notified respectfully.</p></div>
+  `;
+  
+  document.getElementById('tripDoneContent').innerHTML = modalContent;
+  document.getElementById('tripDoneModal').querySelector('h3').textContent = 'Update: Could not travel';
+  document.getElementById('tripDoneModal').style.display = 'flex';
+  document.getElementById('tripDoneModal').classList.add('show');
+  window.currentReportBookingId = bookingId;
+  window.currentReportPostId = postId;
+  
+  setTimeout(()=>{
+    const radios = document.querySelectorAll('input[name="notTravelReason"]');
+    radios.forEach(r=>{
+      r.addEventListener('change', ()=>{
+        const otherDiv = document.getElementById('otherReasonDiv');
+        if(otherDiv) otherDiv.style.display = (r.value==='Other' && r.checked) ? 'block' : 'none';
+      });
+    });
+    const confirmBtn = document.querySelector('#tripDoneModal button[onclick="confirmTripDone()"]');
+    if(confirmBtn){
+      confirmBtn.setAttribute('onclick', 'confirmReportNotTravel()');
+      confirmBtn.textContent = '✅ Update Status - Could not travel';
+      confirmBtn.style.background = '#f59e0b';
+    }
+  }, 100);
+}
+
+async function confirmReportNotTravel(){
+  const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
+  const postId = window.currentReportPostId;
+  const bookingId = window.currentReportBookingId;
+  
+  const selectedRadio = document.querySelector('input[name="notTravelReason"]:checked');
+  let reason = selectedRadio ? selectedRadio.value : 'Rather not mention - Personal reason';
+  if(reason==='Other'){
+    const otherText = document.getElementById('otherReasonText');
+    if(otherText && otherText.value.trim()){
+      reason = 'Other: ' + otherText.value.trim();
+    } else {
+      reason = 'Rather not mention - Personal reason';
+    }
   }
-  if(!confirm('Confirm report:\n\nYou are reporting you did NOT travel on this ride.\nReason: '+reason+'\n\nThis will notify owner ('+postId+') and mark as disputed. Continue?')) return;
+  
+  // Respectful confirmation - no "disputed" word
+  if(!confirm('🙏 Update travel status?\n\nYou are letting Seva Saathi know you could not travel.\nReason: ' + reason + '\n\nThis is a respectful update for accurate records and healthy collaboration in SEV2. Mohan will be notified politely.\n\nContinue?')) return;
+  
   try{
     const res = await fetch(apiBase+'/api/seva/booking/report-no-travel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id: bookingId, post_id: postId, phone: verified.phone, reason: reason})});
     const data = await res.json();
     if(!res.ok) throw new Error(data.detail);
-    alert('✅ Reported: You did NOT travel\n\nReason saved. Owner will be notified. Status: '+data.booking.status);
+    closeTripDoneModal();
+    alert('✅ Thanks for update! 🙏\n\nYou marked as not travelled.\nReason: ' + reason + '\n\nSeva Saathi will be notified respectfully. No negative marking - just for accurate SEV2 records and positive collaboration.');
     loadSeva();
   }catch(e){
-    alert('❌ '+e.message);
+    alert('❌ ' + e.message);
   }
 }
 

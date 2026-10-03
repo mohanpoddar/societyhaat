@@ -1060,10 +1060,10 @@ async def report_no_travel(payload: dict):
         posts[post_idx]=post
         save_seva(posts)
     
-    # Notify owner via whatsapp text
-    wa_text = f"Hi {post.get('name')}, {booking.get('name')} ({booking.get('flat')}) reported: I did NOT travel on ride {post.get('from_source')} → {post.get('to_destination')} on {post.get('date')} {post.get('time')}. Reason: {reason}. Please check and update if needed. - Society Haat"
+    # Notify owner via whatsapp text - respectful, positive approach
+    wa_text = f"Hi {post.get('name')} 🙏, {booking.get('name')} ({booking.get('flat')}) updated travel status for ride {post.get('from_source')} → {post.get('to_destination')} on {post.get('date')} {post.get('time')}. Update: Could not travel. Reason: {reason}. This is for accurate SEV2 records and healthy collaboration - no negative marking. Thanks for understanding! - Society Haat"
     
-    return {"message": f"Reported: You did NOT travel - reason saved, owner notified", "booking": booking, "post": post, "whatsapp_text": wa_text, "whatsapp_owner": post.get('phone')}
+    return {"message": f"Thanks for update 🙏 - marked as not travelled, owner notified respectfully", "booking": booking, "post": post, "whatsapp_text": wa_text, "whatsapp_owner": post.get('phone')}
 
 
 
