@@ -212,7 +212,7 @@
     "to_destination": "Botanical Garden Metro",
     "date": "2026-10-03",
     "time": "11:08",
-    "seats": "3 seats",
+    "seats": "Trip completed",
     "seats_total": 4,
     "seats_booked": 1,
     "seats_pending": 0,
@@ -257,10 +257,15 @@
       }
     ],
     "created_at": "2026-10-03T10:02:26.351214",
-    "status": "active",
+    "status": "completed",
     "owner_closed": false,
     "booking_cutoff_minutes": 30,
     "updated_at": "2026-10-03T10:03:55.568651",
-    "edited": true
+    "edited": true,
+    "completed_at": "2026-10-03T15:12:43.730115",
+    "completed_by": "owner",
+    "completed_notes": "Trip completed - empty ride, no passengers",
+    "no_show_count": 0,
+    "completed_count": 0
   }
 ]

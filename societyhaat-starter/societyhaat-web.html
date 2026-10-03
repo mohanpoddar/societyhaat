@@ -805,20 +805,41 @@ async function loadSeva(){
   const verified = JSON.parse(localStorage.getItem('verifiedUser') || '{}');
   const myPhone = (verified.phone || '').toString().trim();
   
-  // === FIX: Main page only current/ongoing, past completed goes to history ===
+  // === FIX: Per-user history/dashboard - individual view ===
   const now = new Date();
   const filteredPosts = posts.filter(p=>{
-    // Always hide completed, cancelled, expired from main feed - they go to history
-    if(['completed','cancelled','expired'].includes(p.status)) return false;
-    // Hide rides whose date+time is past + 24h (old rides)
-    try{
-      const rd = new Date(p.date+' '+p.time);
-      if(!isNaN(rd)){
-        // If ride time + 24h is past, hide from main feed (goes to history)
-        if(now.getTime() > (rd.getTime() + 24*60*60*1000)) return false;
+    const bookings = p.bookings || [];
+    const myBookings = bookings.filter(b=> (b.phone||'').toString().trim() === myPhone);
+    const myBooking = myBookings.find(b=> ['confirmed','pending','denied','completed_travelled','passenger_confirmed','passenger_reported_no_travel','no_show','expired'].includes(b.status));
+    const postPhone = (p.phone||'').toString().trim();
+    const isOwner = myPhone && postPhone && myPhone===postPhone;
+    
+    // Per-user logic:
+    if(isOwner){
+      // Owner: active until he marks completed/cancelled/expired - time does NOT hide for owner
+      // Owner wants to see his ride in active until he clicks Trip Done
+      if(['completed','cancelled','expired'].includes(p.status)) return false; // goes to his history
+      return true; // stays in his active dashboard even if time passed
+    } else if(myBooking){
+      // Passenger with booking: check his individual status
+      // If his booking is past (travelled, reported not travel, no-show, expired) -> his history only
+      if(['completed_travelled','passenger_confirmed','passenger_reported_no_travel','no_show','expired'].includes(myBooking.status)){
+        return false; // goes to Piyush history only
       }
-    }catch(e){}
-    return true;
+      // If confirmed/pending -> stays in his active dashboard (ongoing booking)
+      return true;
+    } else {
+      // No booking, browsing other rides to book: hide only if post is completed/cancelled/expired or very old (24h grace)
+      if(['completed','cancelled','expired'].includes(p.status)) return false;
+      try{
+        const rd = new Date(p.date+' '+p.time);
+        if(!isNaN(rd)){
+          // For browsing users, hide rides whose time +24h passed (old rides)
+          if(now.getTime() > (rd.getTime() + 24*60*60*1000)) return false;
+        }
+      }catch(e){}
+      return true;
+    }
   });
   const hiddenCount = posts.length - filteredPosts.length;
   

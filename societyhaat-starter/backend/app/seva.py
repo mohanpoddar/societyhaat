@@ -1013,25 +1013,41 @@ async def report_no_travel(payload: dict):
     
     booking = None
     booking_idx = -1
+    # Try booking_id first
     if booking_id:
         for i,b in enumerate(bookings):
             if b.get('id')==booking_id:
                 booking=b
                 booking_idx=i
                 break
-    elif post_id:
+    # Fallback to post_id+phone if booking_id not found or empty (robust for frontend)
+    if not booking and post_id:
         for i,b in enumerate(bookings):
-            if b.get('post_id')==post_id and b.get('phone')==phone and b.get('status') in ('completed_travelled','passenger_confirmed','confirmed'):
-                booking=b
-                booking_idx=i
-                break
+            if b.get('post_id')==post_id and b.get('phone')==phone:
+                # Allow any status that is reportable, including already reported
+                if b.get('status') in ('completed_travelled','passenger_confirmed','confirmed','passenger_reported_no_travel'):
+                    booking=b
+                    booking_idx=i
+                    break
+        # If still not found, try without status filter (for old data)
+        if not booking:
+            for i,b in enumerate(bookings):
+                if b.get('post_id')==post_id and b.get('phone')==phone:
+                    booking=b
+                    booking_idx=i
+                    break
     
     if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found - only completed/confirmed bookings can report not travel")
+        raise HTTPException(status_code=404, detail="Booking not found - please refresh page, ensure you booked this ride with phone "+phone)
     if booking.get('phone')!=phone:
         raise HTTPException(status_code=403, detail="Only booking owner can report")
+    
+    # If already reported, return success friendly (not error)
+    if booking.get('status')=='passenger_reported_no_travel':
+        return {"message": f"Already updated - you previously reported: {booking.get('passenger_no_travel_reason','Rather not mention')}", "booking": booking, "post": None, "already_reported": True}
+    
     if booking.get('status') not in ('completed_travelled','passenger_confirmed','confirmed'):
-        raise HTTPException(status_code=400, detail=f"Cannot report {booking.get('status')} booking as not travelled")
+        raise HTTPException(status_code=400, detail=f"Cannot report {booking.get('status')} booking as not travelled - only completed/confirmed can be updated")
     
     # Mark as passenger reported no travel
     booking['status']='passenger_reported_no_travel'
@@ -1161,22 +1177,54 @@ async def get_ride_history(phone: str = "", society_id: str = "", status: str = 
     # Sort by date desc
     all_user_posts = sorted(all_user_posts, key=lambda x: x.get('created_at',''), reverse=True)
     
-    # Categorize
+    # Categorize - per-user logic
     upcoming = []
     past = []
     for p in all_user_posts:
-        ride_dt = parse_ride_datetime(p.get('date',''), p.get('time',''))
-        if not ride_dt:
-            # If no date, treat as past if completed/cancelled, else upcoming
-            if p.get('status') in ('completed','cancelled'):
+        isOwner = p.get('phone')==phone
+        # Find user's booking for this post
+        my_booking = None
+        for b in bookings:
+            if b.get('post_id')==p.get('id') and b.get('phone')==phone:
+                my_booking = b
+                break
+        
+        if isOwner:
+            # Owner: upcoming if not completed/cancelled, past if completed/cancelled
+            # Time does NOT move to past for owner until he marks completed
+            if p.get('status') in ('completed','cancelled','expired'):
                 past.append(p)
             else:
                 upcoming.append(p)
+        elif my_booking:
+            # Passenger: based on his booking status
+            if my_booking.get('status') in ('completed_travelled','passenger_confirmed','passenger_reported_no_travel','no_show','expired'):
+                past.append(p)
+            elif my_booking.get('status') in ('confirmed','pending'):
+                # Even if ride time passed, if still confirmed, keep in upcoming for passenger? 
+                # But if Piyush reported not travel, it's past. If still confirmed and time passed, keep upcoming until owner marks completed?
+                # For simplicity: confirmed stays upcoming until owner completes, then becomes past via status change
+                upcoming.append(p)
+            else:
+                # denied etc - treat as past
+                past.append(p)
         else:
-            if p.get('status') in ('completed','cancelled') or ride_dt < datetime.now():
-                past.append(p)
+            # No booking but post is in list because owner? Actually shouldn't happen, but handle
+            ride_dt = parse_ride_datetime(p.get('date',''), p.get('time',''))
+            if not ride_dt:
+                if p.get('status') in ('completed','cancelled'):
+                    past.append(p)
+                else:
+                    upcoming.append(p)
             else:
-                upcoming.append(p)
+                if p.get('status') in ('completed','cancelled'):
+                    past.append(p)
+                else:
+                    # For browsing, upcoming if future, past if old
+                    if ride_dt < datetime.now():
+                        past.append(p)
+                    else:
+                        upcoming.append(p)
     
     return {
         "phone": phone,
