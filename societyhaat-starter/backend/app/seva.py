@@ -16,7 +16,27 @@ def load_seva():
     try:
         with open(SEVA_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            return data if isinstance(data, list) else data.get('posts', [])
+            posts = data if isinstance(data, list) else data.get('posts', [])
+            # Auto-migrate: add carpool_id if missing for old rides (auditing)
+            migrated = False
+            for p in posts:
+                if not p.get('carpool_id'):
+                    society = p.get('society_id','sev2').upper()[:6]
+                    date_code = ""
+                    try:
+                        dt = datetime.fromisoformat(p.get('created_at',''))
+                        date_code = dt.strftime("%Y%m%d")
+                    except:
+                        date_code = datetime.now().strftime("%Y%m%d")
+                    short = (p.get('id','') or str(uuid.uuid4())[:4]).upper()[:4]
+                    p['carpool_id'] = f"CP-{society}-{date_code}-0000-{short}"
+                    migrated = True
+            if migrated:
+                try:
+                    save_seva(posts)
+                except:
+                    pass
+            return posts
     except Exception as e:
         print(f"load_seva error: {e}")
         return []
@@ -112,14 +132,40 @@ def parse_seats(seats_str):
     return int(m.group(1)) if m else 4
 
 @router.get("/list")
-async def list_seva(society_id: str = "", type: str = ""):
+async def list_seva(society_id: str = "", type: str = "", carpool_id: str = "", search: str = ""):
     posts = load_seva()
     if society_id:
         posts = [p for p in posts if p.get('society_id','sev2').lower() == society_id.lower()]
     if type:
         posts = [p for p in posts if p.get('type','').lower() == type.lower()]
+    if carpool_id:
+        # Exact or partial match on carpool_id for tracking/auditing
+        cid = carpool_id.lower().strip()
+        posts = [p for p in posts if cid in (p.get('carpool_id','') or '').lower() or cid in (p.get('id','') or '').lower()]
+    if search:
+        # General search by ID, from, to, name
+        term = search.lower().strip()
+        posts = [p for p in posts if term in (p.get('carpool_id','') or '').lower() or term in (p.get('id','') or '').lower() or term in (p.get('from_source','') or '').lower() or term in (p.get('to_destination','') or '').lower() or term in (p.get('name','') or '').lower()]
     posts = sorted(posts, key=lambda x: x.get('created_at',''), reverse=True)
     return {"posts": posts, "count": len(posts)}
+
+def generate_carpool_id(society_id, existing_posts):
+    """Generate human-readable Car Pool ID: CP-SEV2-20261004-A1B2 or CP-SEV2-0001"""
+    society_code = society_id.upper()[:6] if society_id else "SEV2"
+    date_code = datetime.now().strftime("%Y%m%d")
+    # Count existing CP for today to get sequential
+    today_count = len([p for p in existing_posts if p.get('carpool_id','').startswith(f"CP-{society_code}-{date_code}")]) + 1
+    # Short unique 4-char hex
+    short_unique = str(uuid.uuid4())[:4].upper()
+    # Format: CP-SEV2-20261004-0001-A1B2 (readable, auditable)
+    carpool_id = f"CP-{society_code}-{date_code}-{today_count:04d}-{short_unique}"
+    # Ensure uniqueness
+    existing_ids = {p.get('carpool_id') for p in existing_posts}
+    while carpool_id in existing_ids:
+        short_unique = str(uuid.uuid4())[:4].upper()
+        carpool_id = f"CP-{society_code}-{date_code}-{today_count:04d}-{short_unique}"
+        today_count += 1
+    return carpool_id
 
 @router.post("/create")
 async def create_seva(payload: dict):
@@ -150,8 +196,12 @@ async def create_seva(payload: dict):
     # For Car Pool, ensure at least 1 seat if not full
     if seats_total==0 and 'full' not in seats.lower():
         seats_total = 4
+    # Generate proper Car Pool ID for identity, tracking, auditing
+    carpool_id = generate_carpool_id(society_id, posts)
+    internal_id = str(uuid.uuid4())[:8]
     new_post = {
-        "id": str(uuid.uuid4())[:8],
+        "id": internal_id,
+        "carpool_id": carpool_id,
         "society_id": society_id,
         "type": type_,
         "title": title,
@@ -176,11 +226,17 @@ async def create_seva(payload: dict):
         "bookings": [],
         "created_at": datetime.now().isoformat(),
         "status": "active",
-        "owner_closed": False
+        "owner_closed": False,
+        "audit": {
+            "created_by": phone,
+            "created_at": datetime.now().isoformat(),
+            "society": society_id,
+            "version": 1
+        }
     }
     posts.append(new_post)
     save_seva(posts)
-    return {"message": f"Posted to {society_id.upper()} Seva", "post": new_post}
+    return {"message": f"Posted to {society_id.upper()} Seva - ID {carpool_id}", "post": new_post, "carpool_id": carpool_id}
 
 @router.post("/book")
 async def book_ride(payload: dict):

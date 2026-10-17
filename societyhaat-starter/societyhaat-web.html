@@ -843,7 +843,7 @@ async function loadSeva(){
   });
   const hiddenCount = posts.length - filteredPosts.length;
   
-  let htmlOut = '<div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center"><div style="display:flex;gap:6px;align-items:center"><span class="tag tag-isolated">🏠 Isolated: '+selectedSociety.toUpperCase()+' only</span><span class="tag" style="background:#f1f5f9">'+filteredPosts.length+' active</span>'+(hiddenCount>0 ? '<span class="tag" style="background:#e2e8f0;color:#64748b">'+hiddenCount+' in history</span>' : '')+'</div><div style="display:flex;gap:4px"><button onclick="loadMyRidesHistory()" style="font-size:8px;background:#3b82f6;color:white;padding:4px 8px;border-radius:20px;border:none;font-weight:700">📜 History ('+hiddenCount+')</button></div></div>';
+  let htmlOut = '<div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center;flex-wrap:wrap;gap:4px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="tag tag-isolated">🏠 Isolated: '+selectedSociety.toUpperCase()+' only</span><span class="tag" style="background:#f1f5f9">'+filteredPosts.length+' active</span>'+(hiddenCount>0 ? '<span class="tag" style="background:#e2e8f0;color:#64748b">'+hiddenCount+' in history</span>' : '')+'</div><div style="display:flex;gap:4px"><button onclick="searchByCarpoolId()" style="font-size:8px;background:#1e293b;color:white;padding:4px 8px;border-radius:20px;border:none;font-weight:700">🔍 ID Search</button><button onclick="loadMyRidesHistory()" style="font-size:8px;background:#3b82f6;color:white;padding:4px 8px;border-radius:20px;border:none;font-weight:700">📜 History ('+hiddenCount+')</button></div></div>';
   if(filteredPosts.length===0 && posts.length>0){
     htmlOut += '<div style="background:white;border-radius:12px;padding:16px;text-align:center;margin-bottom:10px"><p style="font-size:11px;font-weight:700">No active rides</p><p style="font-size:9px;color:#64748b;margin-top:4px">'+hiddenCount+' past rides moved to history - click History to view</p><button onclick="loadMyRidesHistory()" style="margin-top:8px;font-size:9px;background:#3b82f6;color:white;padding:6px 12px;border-radius:20px;border:none;font-weight:700">📜 View Travel History</button></div>';
   }
@@ -866,7 +866,13 @@ async function loadSeva(){
    const confirmedBookings = bookings.filter(b=>b.status==='confirmed');
    const deniedBookings = bookings.filter(b=>b.status==='denied');
    
-   let statusBadges = '<span style="font-size:8px;color:#94a3b8">'+(p.date||'')+' '+(p.time||'')+'</span>';
+   const carpoolId = p.carpool_id || p.id || '';
+   let statusBadges = '<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">';
+   if(carpoolId){
+     statusBadges += '<span style="font-size:8px;background:#1e293b;color:white;padding:3px 7px;border-radius:6px;font-family:monospace;font-weight:700;letter-spacing:0.5px" onclick="copyCarpoolId(\''+carpoolId+'\')" title="Click to copy ID - for tracking & reference">🆔 '+carpoolId+' 📋</span>';
+   }
+   statusBadges += '<span style="font-size:8px;color:#94a3b8">'+(p.date||'')+' '+(p.time||'')+'</span>';
+   statusBadges += '</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">';
    if(p.status==='completed') statusBadges += '<span style="font-size:8px;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:10px">COMPLETED ✅</span>';
    else if(p.status==='expired') statusBadges += '<span style="font-size:8px;background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:10px">EXPIRED ⚫</span>';
    else if(p.status==='cancelled') statusBadges += '<span style="font-size:8px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:10px">CANCELLED 🔴</span>';
@@ -885,6 +891,7 @@ async function loadSeva(){
      const avg = (p.ratings.reduce((s,r)=>s+r.rating,0)/p.ratings.length).toFixed(1);
      statusBadges += '<span style="font-size:8px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:10px">⭐ '+avg+' ('+p.ratings.length+')</span>';
    }
+   statusBadges += '</div>';
    
    let carInfo = '';
    if(isCarPool){
@@ -1227,6 +1234,84 @@ async function markTripDone(postId){
     document.getElementById('tripDoneModal').classList.add('show');
   }catch(e){
     alert('❌ '+e.message);
+  }
+}
+
+function copyCarpoolId(carpoolId){
+  if(!carpoolId) return;
+  // Try modern clipboard first (works on https), fallback to execCommand for http://192.168.x.x
+  const showCopied = (id)=>{
+    // Visual feedback on badge
+    const badges = document.querySelectorAll('span');
+    badges.forEach(b=>{
+      if(b.textContent.includes(id)){
+        const orig = b.innerHTML;
+        b.innerHTML = '✅ Copied! '+id;
+        b.style.background='#16a34a';
+        setTimeout(()=>{ b.innerHTML = orig; b.style.background='#1e293b'; }, 1500);
+      }
+    });
+  };
+  
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(carpoolId).then(()=>{
+      showCopied(carpoolId);
+      // Also show small toast instead of alert
+      const toast = document.createElement('div');
+      toast.innerHTML = '✅ Copied ID: <b>'+carpoolId+'</b><br><span style="font-size:8px">Use for tracking & reference</span>';
+      toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e293b;color:white;padding:10px 16px;border-radius:10px;font-size:10px;z-index:9999;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
+      document.body.appendChild(toast);
+      setTimeout(()=>toast.remove(), 2500);
+    }).catch(()=>{
+      fallbackCopy();
+    });
+  } else {
+    fallbackCopy();
+  }
+  
+  function fallbackCopy(){
+    // Fallback for http - create temp input
+    const temp = document.createElement('textarea');
+    temp.value = carpoolId;
+    temp.style.position='fixed';
+    temp.style.opacity='0';
+    document.body.appendChild(temp);
+    temp.select();
+    try{
+      document.execCommand('copy');
+      showCopied(carpoolId);
+      const toast = document.createElement('div');
+      toast.innerHTML = '✅ Copied ID: <b>'+carpoolId+'</b>';
+      toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#16a34a;color:white;padding:10px 16px;border-radius:10px;font-size:10px;z-index:9999;text-align:center';
+      document.body.appendChild(toast);
+      setTimeout(()=>toast.remove(), 2500);
+    }catch(e){
+      prompt('Copy Car Pool ID (Ctrl+C):', carpoolId);
+    }
+    document.body.removeChild(temp);
+  }
+}
+
+function searchByCarpoolId(){
+  const id = prompt('🔍 Search by Car Pool ID:\n\nEnter ID like CP-SEV2-20261004-0001-A1B2 or short ID:', '');
+  if(!id) return;
+  const term = id.trim().toLowerCase();
+  // Filter feed
+  const cards = document.querySelectorAll('.feed-card');
+  let found = 0;
+  cards.forEach(card=>{
+    if(card.innerHTML.toLowerCase().includes(term)){
+      card.style.display='block';
+      found++;
+      card.style.border='2px solid #3b82f6';
+      setTimeout(()=>{ card.style.border=''; }, 3000);
+    } else {
+      card.style.display='none';
+    }
+  });
+  if(found===0) alert('No ride found with ID containing: '+id);
+  else {
+    alert('✅ Found '+found+' ride(s) with ID: '+id+'\n\nClick History to see all again');
   }
 }
 
